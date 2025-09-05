@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Maintains app-wide state
+/// Maintains app-wide state - Updated for Feature Map Detail Panel
 @MainActor
 @Observable
 class AppModel {
@@ -44,6 +44,10 @@ class AppModel {
     
     // Multi-layer neuron selections - Her layer'da ayrı seçim
     var selectedNeurons: [String: Int] = [:] // "flatten" → 42, "dense1" → 18, etc.
+    
+    // Feature Map Detail Panel State
+    var selectedFeatureMap: (cubeIndex: Int, featureMapIndex: Int)? = nil
+    var isFeatureMapDetailPanelOpen: Bool = false
     
     // Seçili input'tan rakamı çıkart (input_0 → 0). Yoksa currentInputIndex döner.
     func selectedInputIndex() -> Int? {
@@ -184,5 +188,16 @@ class AppModel {
         default:
             break
         }
+    }
+    
+    // Feature Map Detail Panel Functions
+    func openFeatureMapDetailPanel(cubeIndex: Int, featureMapIndex: Int) {
+        selectedFeatureMap = (cubeIndex: cubeIndex, featureMapIndex: featureMapIndex)
+        isFeatureMapDetailPanelOpen = true
+    }
+    
+    func closeFeatureMapDetailPanel() {
+        selectedFeatureMap = nil
+        isFeatureMapDetailPanelOpen = false
     }
 }

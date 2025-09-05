@@ -10,13 +10,13 @@ import RealityKit
 import UIKit
 
 func makeAlexNetCubesAnchor(labels: [String] = [
-    "CONVOLUTION1\n55x55x96", 
-    "MAXPOOL1\n27x27x96", 
-    "CONVOLUTION2\n27x27x256",
-    "MAXPOOL2\n13x13x256",
+    "CONVOLUTION1\n55x55x64", 
+    "MAXPOOL1\n27x27x64", 
+    "CONVOLUTION2\n27x27x192",
+    "MAXPOOL2\n13x13x192",
     "CONVOLUTION3\n13x13x384",
-    "CONVOLUTION4\n13x13x384",
-    "CONVOLUTION5\n13x13x256",
+    "CONVOLUTION4\n13x13x256",
+    "CONVOLUTION4\n13x13x256",
     "MAXPOOL3\n6x6x256"
 ]) -> Entity {
     let anchor = Entity()
@@ -42,19 +42,19 @@ func makeAlexNetCubesAnchor(labels: [String] = [
     // Grup 3: Arkada 3 küp (5, 6, 7) - 180° döndür (kullanıcıya baksın)
     
     let positions: [SIMD3<Float>] = [
-        // Önde 3 küp (kullanıcının önünde, main panel sağında)
-        SIMD3<Float>(-0.8, 0, 0),    // Sol
+        // Önde 3 küp (kullanıcının önünde, main panel sağında) - mesafeleri arttırıldı
+        SIMD3<Float>(-1.2, 0, 0),    // Sol (daha uzak)
         SIMD3<Float>(0, 0, 0),       // Orta
-        SIMD3<Float>(0.8, 0, 0),     // Sağ
+        SIMD3<Float>(1.2, 0, 0),     // Sağ (daha uzak)
         
-        // Sağda 2 küp (kullanıcının sağında)
-        SIMD3<Float>(1.6, 0, 0.8),  // Sağ-ön
-        SIMD3<Float>(1.6, 0, 1.6),   // Sağ-arka
+        // Sağda 2 küp (kullanıcının sağında) - mesafeleri arttırıldı
+        SIMD3<Float>(2.4, 0, 1.2),  // Sağ-ön (daha uzak)
+        SIMD3<Float>(2.4, 0, 2.4),   // Sağ-arka (daha uzak)
         
-        // Arkada 3 küp (kullanıcının arkasında)
-        SIMD3<Float>(-0.8, 0, 2.4),  // Arka-sol
-        SIMD3<Float>(0, 0, 2.4),     // Arka-orta
-        SIMD3<Float>(0.8, 0, 2.4)    // Arka-sağ
+        // Arkada 3 küp (kullanıcının arkasında) - mesafeleri arttırıldı
+        SIMD3<Float>(-1.2, 0, 3.6),  // Arka-sol (daha uzak)
+        SIMD3<Float>(0, 0, 3.6),     // Arka-orta (daha uzak)
+        SIMD3<Float>(1.2, 0, 3.6)    // Arka-sağ (daha uzak)
     ]
     
     // Her grup için rotasyon (Y-ekseni etrafında)
@@ -114,11 +114,11 @@ func makeAlexNetCubesAnchor(labels: [String] = [
         if rotations[i] == 90 {
             // Küpün tam altında olsun (x sabit), kullanıcıya dönük olsun (z ön tarafta)
             labelX = positions[i].x
-            labelZ = positions[i].z - 0.12 // Kullanıcıya doğru (pozitif z yönü)
+            labelZ = positions[i].z - 0.15 // Kullanıcıya doğru (pozitif z yönü) - daha uzak
         }
         // Arkadaki küpler (180°) için label pozisyonunu ayarla
         else if rotations[i] == 180 {
-            labelX = positions[i].x + 0.16
+            labelX = positions[i].x + 0.20 // Daha uzak offset
             labelZ = positions[i].z
         }
         

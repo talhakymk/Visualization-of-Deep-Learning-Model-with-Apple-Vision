@@ -26,11 +26,6 @@ struct ImmersiveView: View {
                 let mainAnchor = Entity()
                 mainAnchor.name = "MainPanelAnchor"
                 content.add(mainAnchor)
-                // SwiftUI panel entity'sini attachments'tan alıp anchor'a ekle
-                if let viewEntity = attachments.entity(for: "mainPanel") {
-                    viewEntity.name = "MainPanelAttachmentEntity"
-                    mainAnchor.addChild(viewEntity)
-                }
                 // Panelin sabit konumu (sol-önde, göz hizası civarı)
                 var mainT = Transform()
                 mainT.translation = SIMD3<Float>(x: -0.6, y: 1.50, z: -1.5)
@@ -79,9 +74,9 @@ struct ImmersiveView: View {
                 // 4.6) AlexNet Neural Network Model (arka-sol küpün solunda)
                 let alexnetNetworkAnchor = makeAlexNetNeuralNetworkAnchor()
                 var alexnetNetworkT = Transform()
-                // Arka-sol küp pozisyonu: x=1.2+(-0.8)=0.4, z=-1.5+2.4=0.9
-                // Ağ modelini daha solda konumlandır: x=0.4-1.8=-1.4
-                alexnetNetworkT.translation = SIMD3<Float>(x: -2.0, y: 1.2, z: 0.9)
+                // Yeni arka-sol küp pozisyonu: x=1.2+(-1.2)=0.0, z=-1.5+3.6=2.1
+                // Ağ modelini arka-sol küpün daha soluna konumlandır: x=0.0-2.5=-2.5
+                alexnetNetworkT.translation = SIMD3<Float>(x: -2.5, y: 1.2, z: 2.1)
                 alexnetNetworkAnchor.transform = alexnetNetworkT
                 alexnetNetworkAnchor.isEnabled = false
                 content.add(alexnetNetworkAnchor)
@@ -90,7 +85,7 @@ struct ImmersiveView: View {
                 let alexnetConnectionsAnchor = makeAlexNetConnectionLines()
                 var alexnetConnectionsT = Transform()
                 // Nöronlarla aynı pozisyonda
-                alexnetConnectionsT.translation = SIMD3<Float>(x: -2.0, y: 1.2, z: 0.9)
+                alexnetConnectionsT.translation = SIMD3<Float>(x: -2.5, y: 1.2, z: 2.1)
                 alexnetConnectionsAnchor.transform = alexnetConnectionsT
                 alexnetConnectionsAnchor.isEnabled = false
                 content.add(alexnetConnectionsAnchor)
@@ -99,10 +94,26 @@ struct ImmersiveView: View {
                 let alexnetLabelsAnchor = makeAlexNetLayerLabels()
                 var alexnetLabelsT = Transform()
                 // Nöronlarla aynı pozisyonda
-                alexnetLabelsT.translation = SIMD3<Float>(x: -2.0, y: 1.2, z: 0.9)
+                alexnetLabelsT.translation = SIMD3<Float>(x: -2.5, y: 1.2, z: 2.1)
                 alexnetLabelsAnchor.transform = alexnetLabelsT
                 alexnetLabelsAnchor.isEnabled = false
                 content.add(alexnetLabelsAnchor)
+                
+                // 4.9) AlexNet Prediction Panel (kullanıcının solunda)
+                let alexnetPredictionAnchor = Entity()
+                alexnetPredictionAnchor.name = "AlexNetPredictionPanelAnchor"
+                if let predictionEntity = attachments.entity(for: "alexnetPredictionPanel") {
+                    predictionEntity.name = "AlexNetPredictionPanelEntity"
+                    alexnetPredictionAnchor.addChild(predictionEntity)
+                }
+                var alexnetPredictionT = Transform()
+                // Kullanıcının solunda konumlandır ve kullanıcıya dönük yap
+                alexnetPredictionT.translation = SIMD3<Float>(x: -2.0, y: 1.5, z: 0.0)
+                // 90° sağa döndür (kullanıcıya dönük)
+                alexnetPredictionT.rotation = simd_quatf(angle: Float.pi / 2, axis: SIMD3<Float>(0, 1, 0))
+                alexnetPredictionAnchor.transform = alexnetPredictionT
+                alexnetPredictionAnchor.isEnabled = false
+                content.add(alexnetPredictionAnchor)
                 
                 // 5) Her küp için ayrı Lenet FeatureMap Galerisi anchor'ları
                 // Küplerle aynı yatay düzende, küplerin üstünde
@@ -121,6 +132,57 @@ struct ImmersiveView: View {
                     lenetGalleryAnchor.transform = lenetGalleryT
                     lenetGalleryAnchor.isEnabled = false
                     content.add(lenetGalleryAnchor)
+                }
+                
+                // 5.5) AlexNet Feature Map Gallery'leri (8 küp için)
+                for i in 0..<8 {
+                    let alexnetGalleryAnchor = Entity()
+                    alexnetGalleryAnchor.name = "AlexNetFeatureGalleryAnchor_\(i)"
+                    
+                    if let galleryEntity = attachments.entity(for: "alexnetFeatureGallery_\(i)") {
+                        galleryEntity.name = "AlexNetFeatureGalleryEntity_\(i)"
+                        alexnetGalleryAnchor.addChild(galleryEntity)
+                    }
+                    
+                    var alexnetGalleryT = Transform()
+                    // AlexNet küplerinin üstünde konumlandır (küp pozisyonlarına göre)
+                    // Büyük paneller için daha fazla Y offset (384 ve 256 grid panelleri için)
+                    let alexnetGalleryYOffset: Float = 0.8
+                    
+                    // AlexNet küp pozisyonlarına göre gallery pozisyonları - arttırılmış mesafeler
+                    let alexnetCubePositions: [SIMD3<Float>] = [
+                        SIMD3<Float>(-1.2, 0, 0),    // Sol (arttırıldı)
+                        SIMD3<Float>(0, 0, 0),       // Orta
+                        SIMD3<Float>(1.2, 0, 0),     // Sağ (arttırıldı)
+                        SIMD3<Float>(2.4, 0, 1.2),  // Sağ-ön (arttırıldı)
+                        SIMD3<Float>(2.4, 0, 2.4),  // Sağ-arka (arttırıldı)
+                        SIMD3<Float>(-1.2, 0, 3.6), // Arka-sol (arttırıldı)
+                        SIMD3<Float>(0, 0, 3.6),    // Arka-orta (arttırıldı)
+                        SIMD3<Float>(1.2, 0, 3.6)   // Arka-sağ (arttırıldı)
+                    ]
+                    
+                    let cubePos = alexnetCubePositions[i]
+                    alexnetGalleryT.translation = SIMD3<Float>(
+                        x: 1.2 + cubePos.x,
+                        y: 1.0 + alexnetGalleryYOffset,
+                        z: -1.5 + cubePos.z
+                    )
+                    
+                    // Pozisyona göre rotasyon uygula (kullanıcıya dönük)
+                    switch i {
+                    case 3, 4: // Sağ taraftaki küpler (3: Sağ-ön, 4: Sağ-arka)
+                        // 90° sol döndür (kullanıcıya baksın)
+                        alexnetGalleryT.rotation = simd_quatf(angle: -Float.pi / 2, axis: SIMD3<Float>(0, 1, 0))
+                    case 5, 6, 7: // Arka taraftaki küpler (5: Arka-sol, 6: Arka-orta, 7: Arka-sağ)
+                        // 180° döndür (kullanıcıya baksın)
+                        alexnetGalleryT.rotation = simd_quatf(angle: Float.pi, axis: SIMD3<Float>(0, 1, 0))
+                    default: // Ön taraftaki küpler (0: Sol, 1: Orta) - rotasyon yok
+                        break
+                    }
+                    
+                    alexnetGalleryAnchor.transform = alexnetGalleryT
+                    alexnetGalleryAnchor.isEnabled = false
+                    content.add(alexnetGalleryAnchor)
                 }
                 
                 // 6) Flatten Layer Visualization - Arkada, büyük ve merkezi
@@ -186,8 +248,26 @@ struct ImmersiveView: View {
                 let connectionAnchor = Entity()
                 connectionAnchor.name = "ConnectionLinesAnchor"
                 content.add(connectionAnchor)
+                
+                // 11) Feature Map Detail Panel - Hareket ettirilebilen panel
+                let detailPanelAnchor = Entity()
+                detailPanelAnchor.name = "FeatureMapDetailPanelAnchor"
+                content.add(detailPanelAnchor)
             }
         } update: { content, attachments in
+            // Main Panel: Her zaman göster ama sadece durumu değiştiğinde güncelle (stability için)
+            if let mainPanelAnchor = content.entities.first(where: { $0.name == "MainPanelAnchor" }) {
+                mainPanelAnchor.isEnabled = true // Her zaman aktif
+                
+                // Main panel attachment'ını sadece boşsa ekle (stability için)
+                if mainPanelAnchor.children.isEmpty {
+                    if let mainPanelEntity = attachments.entity(for: "mainPanel") {
+                        mainPanelEntity.name = "MainPanelAttachmentEntity"
+                        mainPanelAnchor.addChild(mainPanelEntity)
+                    }
+                }
+            }
+            
             // Küpler sadece LeNet + input seçiliyse görünsün
             if let cubes = content.entities.first(where: { $0.name == "LenetCubesAnchor" }) {
                 let shouldShowCubes = (appModel.selectedModel == .lenet && appModel.selectedInputImageName != nil)
@@ -218,7 +298,13 @@ struct ImmersiveView: View {
                 alexnetLabels.isEnabled = shouldShowAlexNetLabels
             }
             
-            // Her küp için ayrı galeri kontrolü
+            // AlexNet Prediction Panel sadece AlexNet + input seçiliyse görünsün
+            if let alexnetPrediction = content.entities.first(where: { $0.name == "AlexNetPredictionPanelAnchor" }) {
+                let shouldShowAlexNetPrediction = (appModel.selectedModel == .alexnet && appModel.selectedInputImageName != nil)
+                alexnetPrediction.isEnabled = shouldShowAlexNetPrediction
+            }
+            
+            // Her küp için ayrı galeri kontrolü (LeNet)
             for i in 0..<4 {
                 if let gallery = content.entities.first(where: { $0.name == "LenetFeatureGalleryAnchor_\(i)" }) {
                     let shouldShowGallery = (appModel.selectedModel == .lenet && 
@@ -226,15 +312,31 @@ struct ImmersiveView: View {
                                            appModel.isCubeOpen(i))
                     gallery.isEnabled = shouldShowGallery
                     
-                    // Galeri attachment'ını güncelle
-                    if shouldShowGallery {
-                        // Eski attachment'ları kaldır
-                        gallery.children.removeAll()
-                        
+                    // Galeri attachment'ını sadece durumu değiştiğinde güncelle (stability için)
+                    if shouldShowGallery && gallery.children.isEmpty {
                         // Bu küp için attachment oluştur
                         if let galleryEntity = attachments.entity(for: "lenetFeatureGallery_\(i)") {
                             galleryEntity.name = "LenetFeatureGalleryEntity_\(i)"
                             gallery.addChild(galleryEntity)
+                        }
+                    }
+                }
+            }
+            
+            // AlexNet gallery kontrolü (8 küp için)
+            for i in 0..<8 {
+                if let alexnetGallery = content.entities.first(where: { $0.name == "AlexNetFeatureGalleryAnchor_\(i)" }) {
+                    let shouldShowAlexNetGallery = (appModel.selectedModel == .alexnet && 
+                                                   appModel.selectedInputImageName != nil && 
+                                                   appModel.isAlexNetCubeOpen(i))
+                    alexnetGallery.isEnabled = shouldShowAlexNetGallery
+                    
+                    // AlexNet galeri attachment'ını sadece durumu değiştiğinde güncelle (stability için)
+                    if shouldShowAlexNetGallery && alexnetGallery.children.isEmpty {
+                        // Bu AlexNet küpü için attachment oluştur
+                        if let alexnetGalleryEntity = attachments.entity(for: "alexnetFeatureGallery_\(i)") {
+                            alexnetGalleryEntity.name = "AlexNetFeatureGalleryEntity_\(i)"
+                            alexnetGallery.addChild(alexnetGalleryEntity)
                         }
                     }
                 }
@@ -306,6 +408,28 @@ struct ImmersiveView: View {
                    appModel.selectedInputImageName != nil &&
                    !appModel.activeConnections.isEmpty {
                     updateConnectionLines(connectionAnchor: connectionAnchor)
+                }
+            }
+            
+            // Feature Map Detail Panel: Hareket ettirilebilen panel
+            if let detailPanelAnchor = content.entities.first(where: { $0.name == "FeatureMapDetailPanelAnchor" }) {
+                let shouldShowDetailPanel = appModel.isFeatureMapDetailPanelOpen && appModel.selectedFeatureMap != nil
+                detailPanelAnchor.isEnabled = shouldShowDetailPanel
+                
+                // Detail panel attachment'ını güncelle
+                if shouldShowDetailPanel && detailPanelAnchor.children.isEmpty {
+                    if let detailPanelEntity = attachments.entity(for: "featureMapDetailPanel") {
+                        detailPanelEntity.name = "FeatureMapDetailPanelEntity"
+                        detailPanelAnchor.addChild(detailPanelEntity)
+                        
+                        // Panel'i kullanıcının önüne konumlandır (hareket ettirilebilir)
+                        var detailPanelT = Transform()
+                        detailPanelT.translation = SIMD3<Float>(x: 0.0, y: 1.5, z: -1.0)
+                        detailPanelAnchor.transform = detailPanelT
+                    }
+                } else if !shouldShowDetailPanel {
+                    // Panel kapalıysa child'ları temizle
+                    detailPanelAnchor.children.removeAll()
                 }
             }
         } attachments: {
@@ -399,6 +523,48 @@ struct ImmersiveView: View {
             // Output Layer Visualization
             Attachment(id: "outputLayer") {
                 OutputVisualizationView(appModel: appModel)
+            }
+            
+            // AlexNet Prediction Panel
+            Attachment(id: "alexnetPredictionPanel") {
+                AlexNetPredictionPanel(appModel: appModel)
+            }
+            
+            // AlexNet Feature Map Gallery'leri (8 küp için)
+            ForEach(0..<8, id: \.self) { cubeIndex in
+                Attachment(id: "alexnetFeatureGallery_\(cubeIndex)") {
+                    Group {
+                        if let inputIndex = appModel.selectedInputIndex() {
+                            AlexNetFeatureMapGalleryView(
+                                cubeIndex: cubeIndex, 
+                                inputIndex: inputIndex
+                            ) { cubeIdx, featureMapIdx in
+                                // Feature map detail panel'i aç
+                                appModel.openFeatureMapDetailPanel(
+                                    cubeIndex: cubeIdx, 
+                                    featureMapIndex: featureMapIdx
+                                )
+                            }
+                        } else {
+                            EmptyView()
+                        }
+                    }
+                }
+            }
+            
+            // Feature Map Detail Panel (hareket ettirilebilen)
+            if appModel.isFeatureMapDetailPanelOpen,
+               let featureMap = appModel.selectedFeatureMap,
+               let inputIndex = appModel.selectedInputIndex() {
+                Attachment(id: "featureMapDetailPanel") {
+                    FeatureMapDetailPanel(
+                        cubeIndex: featureMap.cubeIndex,
+                        featureMapIndex: featureMap.featureMapIndex,
+                        inputIndex: inputIndex
+                    ) {
+                        appModel.closeFeatureMapDetailPanel()
+                    }
+                }
             }
         }
         // dokunulan küplerin küçülmesi
