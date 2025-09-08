@@ -24,7 +24,14 @@ class AppModel {
         case lenet
         case alexnet
     }
-    var selectedModel: SelectedModel? = nil
+    var selectedModel: SelectedModel? = nil {
+        didSet {
+            // Model değiştiğinde tüm feature map panellerini kapat
+            if selectedModel != oldValue {
+                closeAllFeatureMapDetailPanels()
+            }
+        }
+    }
     
     var selectedInputImageName: String? = nil
     
@@ -45,9 +52,8 @@ class AppModel {
     // Multi-layer neuron selections - Her layer'da ayrı seçim
     var selectedNeurons: [String: Int] = [:] // "flatten" → 42, "dense1" → 18, etc.
     
-    // Feature Map Detail Panel State
-    var selectedFeatureMap: (cubeIndex: Int, featureMapIndex: Int)? = nil
-    var isFeatureMapDetailPanelOpen: Bool = false
+    // Multiple Feature Map Detail Panels State
+    var openFeatureMapPanels: [(id: UUID, cubeIndex: Int, featureMapIndex: Int)] = []
     
     // Seçili input'tan rakamı çıkart (input_0 → 0). Yoksa currentInputIndex döner.
     func selectedInputIndex() -> Int? {
@@ -190,14 +196,26 @@ class AppModel {
         }
     }
     
-    // Feature Map Detail Panel Functions
+    // Multiple Feature Map Detail Panel Functions
     func openFeatureMapDetailPanel(cubeIndex: Int, featureMapIndex: Int) {
-        selectedFeatureMap = (cubeIndex: cubeIndex, featureMapIndex: featureMapIndex)
-        isFeatureMapDetailPanelOpen = true
+        // Aynı cube ve feature map için zaten açık panel var mı kontrol et
+        let exists = openFeatureMapPanels.contains { panel in
+            panel.cubeIndex == cubeIndex && panel.featureMapIndex == featureMapIndex
+        }
+        
+        // Yoksa yeni panel ekle
+        if !exists {
+            let newPanel = (id: UUID(), cubeIndex: cubeIndex, featureMapIndex: featureMapIndex)
+            openFeatureMapPanels.append(newPanel)
+        }
     }
     
-    func closeFeatureMapDetailPanel() {
-        selectedFeatureMap = nil
-        isFeatureMapDetailPanelOpen = false
+    func closeFeatureMapDetailPanel(id: UUID) {
+        openFeatureMapPanels.removeAll { $0.id == id }
+    }
+    
+    func closeAllFeatureMapDetailPanels() {
+        print("Closing all feature map panels. Current count: \(openFeatureMapPanels.count)")
+        openFeatureMapPanels.removeAll()
     }
 }

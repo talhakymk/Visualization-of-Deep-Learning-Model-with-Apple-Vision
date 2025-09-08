@@ -18,6 +18,8 @@ struct ImmersiveView: View {
     
     @State private var cubeTapSubscription: EventSubscription? = nil
     @State private var shrunkCubes: Set<String> = []
+        // Drag işlemi için initial position tracking (birden fazla panel için)
+    @State private var detailPanelInitialPositions: [String: SIMD3<Float>] = [:]
     
     var body: some View {
         RealityView { content, attachments in
@@ -249,10 +251,17 @@ struct ImmersiveView: View {
                 connectionAnchor.name = "ConnectionLinesAnchor"
                 content.add(connectionAnchor)
                 
-                // 11) Feature Map Detail Panel - Hareket ettirilebilen panel
+            // Multiple Feature Map Detail Panels: Her panel için ayrı anchor
+            for (index, panel) in appModel.openFeatureMapPanels.enumerated() {
                 let detailPanelAnchor = Entity()
-                detailPanelAnchor.name = "FeatureMapDetailPanelAnchor"
+                detailPanelAnchor.name = "FeatureMapDetailPanelAnchor_\(panel.id)"
+                
+                // Her panel farklı pozisyonda başlasın (side by side)
+                let offsetX = Float(index) * 0.6 - Float(appModel.openFeatureMapPanels.count - 1) * 0.3
+                detailPanelAnchor.position = SIMD3<Float>(offsetX, 1.5, -1.5)
+                
                 content.add(detailPanelAnchor)
+            }
             }
         } update: { content, attachments in
             // Main Panel: Her zaman göster ama sadece durumu değiştiğinde güncelle (stability için)
@@ -411,25 +420,82 @@ struct ImmersiveView: View {
                 }
             }
             
-            // Feature Map Detail Panel: Hareket ettirilebilen panel
-            if let detailPanelAnchor = content.entities.first(where: { $0.name == "FeatureMapDetailPanelAnchor" }) {
-                let shouldShowDetailPanel = appModel.isFeatureMapDetailPanelOpen && appModel.selectedFeatureMap != nil
-                detailPanelAnchor.isEnabled = shouldShowDetailPanel
-                
-                // Detail panel attachment'ını güncelle
-                if shouldShowDetailPanel && detailPanelAnchor.children.isEmpty {
-                    if let detailPanelEntity = attachments.entity(for: "featureMapDetailPanel") {
-                        detailPanelEntity.name = "FeatureMapDetailPanelEntity"
-                        detailPanelAnchor.addChild(detailPanelEntity)
-                        
-                        // Panel'i kullanıcının önüne konumlandır (hareket ettirilebilir)
-                        var detailPanelT = Transform()
-                        detailPanelT.translation = SIMD3<Float>(x: 0.0, y: 1.5, z: -1.0)
-                        detailPanelAnchor.transform = detailPanelT
+            // Multiple Feature Map Detail Panels: Her panel için ayrı yönetim
+            let existingPanelAnchors = content.entities.filter { $0.name.hasPrefix("FeatureMapDetailPanelAnchor_") }
+            let existingPanelIds = Set(existingPanelAnchors.compactMap { anchor in
+                let components = anchor.name.split(separator: "_")
+                return components.count >= 2 ? String(components.dropFirst().joined(separator: "_")) : nil
+            })
+            
+            let activePanelIds = Set(appModel.openFeatureMapPanels.map { $0.id.uuidString })
+            
+            // Gereksiz panel anchor'larını kaldır
+            for anchor in existingPanelAnchors {
+                let components = anchor.name.split(separator: "_")
+                if components.count >= 2 {
+                    let panelIdStr = String(components.dropFirst().joined(separator: "_"))
+                    if !activePanelIds.contains(panelIdStr) {
+                        content.remove(anchor)
                     }
-                } else if !shouldShowDetailPanel {
-                    // Panel kapalıysa child'ları temizle
-                    detailPanelAnchor.children.removeAll()
+                }
+            }
+            
+            // Eksik panel anchor'larını ekle
+            for panel in appModel.openFeatureMapPanels {
+                if !existingPanelIds.contains(panel.id.uuidString) {
+                    let detailPanelAnchor = Entity()
+                    detailPanelAnchor.name = "FeatureMapDetailPanelAnchor_\(panel.id)"
+                    
+                    // Her panel'i biraz farklı pozisyonda başlat
+                    let index = appModel.openFeatureMapPanels.firstIndex { $0.id == panel.id } ?? 0
+                    let offsetX = Float(index) * 0.6 - Float(appModel.openFeatureMapPanels.count - 1) * 0.3
+                    detailPanelAnchor.position = SIMD3<Float>(offsetX, 1.5, -1.5)
+                    
+                    content.add(detailPanelAnchor)
+                }
+            }
+            
+            // Her panel anchor için attachment güncelle
+            for panel in appModel.openFeatureMapPanels {
+                if let anchor = content.entities.first(where: { $0.name == "FeatureMapDetailPanelAnchor_\(panel.id)" }) {
+                    // Attachment'ı sadece boşsa ekle
+                    if anchor.children.isEmpty {
+                        if let detailPanelEntity = attachments.entity(for: "featureMapDetailPanel_\(panel.id)") {
+                            detailPanelEntity.name = "FeatureMapDetailPanelEntity_\(panel.id)"
+                            
+                            // Panel'e collision ve input components ekle - Sadece close button için
+                            let panelSize: Float = 0.6
+                            detailPanelEntity.components.set(CollisionComponent(shapes: [.generateBox(size: [panelSize, panelSize * 1.2, 0.01])]))
+                            detailPanelEntity.components.set(InputTargetComponent(allowedInputTypes: [.indirect, .direct]))
+                            detailPanelEntity.components.set(HoverEffectComponent())
+                            
+                            // Drag handle için ayrı entity (daha büyük alan)
+                            let dragHandleEntity = Entity()
+                            dragHandleEntity.name = "DragHandle_\(panel.id)"
+                            dragHandleEntity.position = SIMD3<Float>(0, -0.17, 0.01) // Daha yukarıda
+                            
+                            // Drag handle collision (daha büyük alan - panelin alt yarısı)
+                            let dragHandleWidth: Float = 0.35
+                            let dragHandleHeight: Float = 0.1 // Daha yüksek
+                            dragHandleEntity.components.set(CollisionComponent(shapes: [.generateBox(size: [dragHandleWidth, dragHandleHeight, 0.02])]))
+                            dragHandleEntity.components.set(InputTargetComponent(allowedInputTypes: [.indirect, .direct]))
+                            
+                            // Close button için ayrı entity (üst sağ köşede)
+                            let closeButtonEntity = Entity()
+                            closeButtonEntity.name = "CloseButton_\(panel.id)"
+                            closeButtonEntity.position = SIMD3<Float>(0.155, 0.195, 0.02) // Üst sağ köşe
+                            
+                            // Close button collision (büyük tap area)
+                            let closeButtonSize: Float = 0.035 // Daha büyük area
+                            closeButtonEntity.components.set(CollisionComponent(shapes: [.generateBox(size: [closeButtonSize, closeButtonSize, 0.03])]))
+                            closeButtonEntity.components.set(InputTargetComponent(allowedInputTypes: [.indirect, .direct]))
+                            closeButtonEntity.components.set(HoverEffectComponent())
+                            
+                            detailPanelEntity.addChild(dragHandleEntity)
+                            detailPanelEntity.addChild(closeButtonEntity)
+                            anchor.addChild(detailPanelEntity)
+                        }
+                    }
                 }
             }
         } attachments: {
@@ -552,27 +618,54 @@ struct ImmersiveView: View {
                 }
             }
             
-            // Feature Map Detail Panel (hareket ettirilebilen)
-            if appModel.isFeatureMapDetailPanelOpen,
-               let featureMap = appModel.selectedFeatureMap,
-               let inputIndex = appModel.selectedInputIndex() {
-                Attachment(id: "featureMapDetailPanel") {
+            // Multiple Feature Map Detail Panels (hareket ettirilebilen)
+            ForEach(appModel.openFeatureMapPanels, id: \.id) { panel in
+                Attachment(id: "featureMapDetailPanel_\(panel.id)") {
                     FeatureMapDetailPanel(
-                        cubeIndex: featureMap.cubeIndex,
-                        featureMapIndex: featureMap.featureMapIndex,
-                        inputIndex: inputIndex
+                        cubeIndex: panel.cubeIndex,
+                        featureMapIndex: panel.featureMapIndex,
+                        inputIndex: appModel.selectedInputIndex() ?? 0,
+                        selectedInputName: appModel.selectedInputImageName
                     ) {
-                        appModel.closeFeatureMapDetailPanel()
+                        appModel.closeFeatureMapDetailPanel(id: panel.id)
                     }
                 }
             }
         }
-        // dokunulan küplerin küçülmesi
+        // dokunulan küplerin küçülmesi + panel işlemleri
         .gesture(
             SpatialTapGesture()
                 .targetedToAnyEntity()
                 .onEnded { value in
                     let tapped = value.entity
+                    
+                    // Close Button Entity tapped - Direkt panel kapat
+                    if tapped.name.hasPrefix("CloseButton_") {
+                        let entityName = tapped.name
+                        let panelIdStr = String(entityName.dropFirst("CloseButton_".count))
+                        if let panelId = UUID(uuidString: panelIdStr) {
+                            appModel.closeFeatureMapDetailPanel(id: panelId)
+                        }
+                        return // Exit early
+                    }
+                    
+                    // Feature Map Detail Panel tapped - Close button kontrol et
+                    if tapped.name.hasPrefix("FeatureMapDetailPanelEntity_") {
+                        let entityName = tapped.name
+                        let panelIdStr = String(entityName.dropFirst("FeatureMapDetailPanelEntity_".count))
+                        
+                        // Panel'deki tap position'ını kontrol et (close button alanında mı?)
+                        let tapPosition = value.location3D
+                        
+                        // Close button'un panel üst sağında olduğunu varsay
+                        // Panel size: 0.6 x 0.72, close button: sağ üst köşe
+                        if tapPosition.x > 0.2 && tapPosition.y > 0.25 {
+                            if let panelId = UUID(uuidString: panelIdStr) {
+                                appModel.closeFeatureMapDetailPanel(id: panelId)
+                            }
+                            return // Exit early to prevent other gesture handling
+                        }
+                    }
                     
                     // LeNet küpleri
                     if tapped.name.hasPrefix("LenetCube_") {
@@ -611,6 +704,61 @@ struct ImmersiveView: View {
                             tapped.transform = t
                         }
                     }
+                }
+        )
+        // Multiple Feature Map Detail Panels için drag gesture - Sadece drag handle'da
+        .gesture(
+            DragGesture()
+                .targetedToAnyEntity()
+                .onChanged { value in
+                    // Sadece drag handle entity'si için çalış
+                    guard value.entity.name.hasPrefix("DragHandle_") else { return }
+                    
+                    // Panel ID'sini drag handle'dan çıkar
+                    let entityName = value.entity.name
+                    let panelIdStr = String(entityName.dropFirst("DragHandle_".count))
+                    
+                    // Panel anchor'ını bul (drag handle -> panel entity -> panel anchor)
+                    guard let panelEntity = value.entity.parent,
+                          let detailPanelAnchor = panelEntity.parent else { return }
+                    
+                    // Drag logic
+                    if detailPanelInitialPositions[panelIdStr] == nil {
+                        detailPanelInitialPositions[panelIdStr] = detailPanelAnchor.transform.translation
+                    }
+                    guard let initialPos = detailPanelInitialPositions[panelIdStr] else { return }
+                    
+                    let translation = value.translation3D
+                    let sensitivity: Float = 0.001
+                    let scaledX = Float(translation.x) * sensitivity
+                    let scaledY = -Float(translation.y) * sensitivity
+                    let scaledZ = Float(translation.z) * sensitivity
+                    
+                    // Position kısıtlamaları kaldırıldı - Serbest hareket
+                    let newX = initialPos.x + scaledX
+                    let newY = initialPos.y + scaledY
+                    let newZ = initialPos.z + scaledZ
+                    
+                    var newTransform = detailPanelAnchor.transform
+                    newTransform.translation = SIMD3<Float>(newX, newY, newZ)
+                    
+                    // Rotation
+                    let userPosition = SIMD3<Float>(0, 1.6, 0)
+                    let panelPosition = newTransform.translation
+                    let direction = normalize(userPosition - panelPosition)
+                    let angle = atan2(direction.x, direction.z)
+                    newTransform.rotation = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 1, 0))
+                    
+                    detailPanelAnchor.transform = newTransform
+                }
+                .onEnded { value in
+                    // Sadece drag handle entity'si için
+                    guard value.entity.name.hasPrefix("DragHandle_") else { return }
+                    
+                    // Panel ID'sini çıkar ve initial position'ı temizle
+                    let entityName = value.entity.name
+                    let panelIdStr = String(entityName.dropFirst("DragHandle_".count))
+                    detailPanelInitialPositions.removeValue(forKey: panelIdStr)
                 }
         )
     }
