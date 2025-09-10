@@ -603,7 +603,8 @@ struct ImmersiveView: View {
                         if let inputIndex = appModel.selectedInputIndex() {
                             AlexNetFeatureMapGalleryView(
                                 cubeIndex: cubeIndex, 
-                                inputIndex: inputIndex
+                                inputIndex: inputIndex,
+                                selectedInputName: appModel.selectedInputImageName
                             ) { cubeIdx, featureMapIdx in
                                 // Feature map detail panel'i aç
                                 appModel.openFeatureMapDetailPanel(

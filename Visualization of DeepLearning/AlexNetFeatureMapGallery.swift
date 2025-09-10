@@ -10,6 +10,7 @@ import SwiftUI
 struct AlexNetFeatureMapGalleryView: View {
     let cubeIndex: Int
     let inputIndex: Int
+    let selectedInputName: String?
     let onFeatureMapTap: (Int, Int) -> Void // (cubeIndex, featureMapIndex) -> Void
     
     // Her küp için grid sayıları ve boyutları
@@ -61,22 +62,58 @@ struct AlexNetFeatureMapGalleryView: View {
                 .foregroundColor(.white)
                 .padding(.bottom, 8)
             
-            // Grid
+            // Grid - PNG'ler ile
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: gridConfig.columns), spacing: 5) {
                 ForEach(0..<gridConfig.count, id: \.self) { index in
-                    // Tıklanabilir grid elemanları
+                    // Tıklanabilir grid elemanları - PNG ile
                     Button(action: {
                         onFeatureMapTap(cubeIndex, index)
                     }) {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(randomColor(for: index))
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                Text("\(index)")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                            )
+                        let pngFileName = getPngFileName(for: index)
+                        
+                        Group {
+                            if let image = UIImage(named: pngFileName) {
+                                // PNG bulundu - göster
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(
+                                        // Index numarasını alt köşede göster
+                                        VStack {
+                                            Spacer()
+                                            HStack {
+                                                Spacer()
+                                                Text("\(index)")
+                                                    .font(.caption2)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.white)
+                                                    .padding(4)
+                                                    .background(Color.black.opacity(0.7))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                            }
+                                        }
+                                        .padding(4)
+                                    )
+                            } else {
+                                // PNG bulunamadı - placeholder
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(randomColor(for: index))
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        VStack(spacing: 2) {
+                                            Image(systemName: "photo")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.8))
+                                            Text("\(index)")
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                        }
+                                    )
+                            }
+                        }
                     }
                     .buttonStyle(PlainButtonStyle())
                     .scaleEffect(1.0)
@@ -106,6 +143,42 @@ struct AlexNetFeatureMapGalleryView: View {
         .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
     }
     
+    // PNG dosya adını generate et
+    private func getPngFileName(for featureMapIndex: Int) -> String {
+        let inputName = getInputName()
+        let layerName = getLayerName()
+        return "\(inputName)_\(layerName)_\(featureMapIndex)"
+    }
+    
+    // Input adını çıkar
+    private func getInputName() -> String {
+        if let selectedInput = selectedInputName {
+            if selectedInput.hasPrefix("input_") {
+                let suffix = selectedInput.dropFirst("input_".count)
+                return suffix.description
+            } else {
+                return selectedInput
+            }
+        } else {
+            return "\(inputIndex)"
+        }
+    }
+    
+    // Layer adını cube index'ten çıkar
+    private func getLayerName() -> String {
+        let layerNames = [
+            "conv1",    // 0: CONV1
+            "maxp1",    // 1: POOL1  
+            "conv2",    // 2: CONV2
+            "maxp2",    // 3: POOL2
+            "conv3",    // 4: CONV3
+            "conv4",    // 5: CONV4
+            "conv5",    // 6: CONV5
+            "maxp3"     // 7: POOL3
+        ]
+        return layerNames[cubeIndex]
+    }
+    
     // Rastgele renk üretici (placeholder için)
     private func randomColor(for index: Int) -> Color {
         let colors: [Color] = [
@@ -117,7 +190,7 @@ struct AlexNetFeatureMapGalleryView: View {
 }
 
 #Preview {
-    AlexNetFeatureMapGalleryView(cubeIndex: 0, inputIndex: 0) { cubeIndex, featureMapIndex in
+    AlexNetFeatureMapGalleryView(cubeIndex: 0, inputIndex: 0, selectedInputName: "cat") { cubeIndex, featureMapIndex in
         print("Tapped cube \(cubeIndex), feature map \(featureMapIndex)")
     }
     .preferredColorScheme(.dark)
