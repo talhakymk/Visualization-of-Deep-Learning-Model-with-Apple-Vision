@@ -65,13 +65,12 @@ struct MainPanelView: View {
                         HStack(spacing: 0) {
                             ForEach(0..<5) { idx in
                                 Button {
-                                    // TODO: tıklama aksiyonu
                                     appModel.selectedInputImageName = inputNames[idx]
                                 } label: {
                                     Image(inputNames[idx])
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(height: 75)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 75)
                                         .clipped()
                                         .contentShape(Rectangle())
                                 }
@@ -86,13 +85,12 @@ struct MainPanelView: View {
                         HStack(spacing: 0) {
                             ForEach(5..<10) { idx in
                                 Button {
-                                    // TODO: tıklama aksiyonu
                                     appModel.selectedInputImageName = inputNames[idx]
                                 } label: {
                                     Image(inputNames[idx])
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(height: 75)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 75)
                                         .clipped()
                                         .contentShape(Rectangle())
                                 }
@@ -145,13 +143,12 @@ struct MainPanelView: View {
                     HStack(spacing: 10) {
                         ForEach(["cat", "dog", "ship"], id: \.self) { name in
                             Button {
-                                // TODO: tıklama aksiyonu
                                 appModel.selectedInputImageName = name
                             } label: {
                                 Image(name)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 120)  // AlexNet ikonlarını biraz daha büyük gösterebiliriz
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 120)
                                     .clipped()
                                     .contentShape(Rectangle())
                             }

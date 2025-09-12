@@ -252,13 +252,25 @@ struct ImmersiveView: View {
                 content.add(connectionAnchor)
                 
             // Multiple Feature Map Detail Panels: Her panel için ayrı anchor
-            for (index, panel) in appModel.openFeatureMapPanels.enumerated() {
+            for panel in appModel.openFeatureMapPanels {
                 let detailPanelAnchor = Entity()
                 detailPanelAnchor.name = "FeatureMapDetailPanelAnchor_\(panel.id)"
                 
-                // Her panel farklı pozisyonda başlasın (side by side)
-                let offsetX = Float(index) * 0.6 - Float(appModel.openFeatureMapPanels.count - 1) * 0.3
-                detailPanelAnchor.position = SIMD3<Float>(offsetX, 1.5, -1.5)
+                // Aynı cube'den olan panel'lerin index'ini hesapla
+                let sameCubePanels = appModel.openFeatureMapPanels.filter { $0.cubeIndex == panel.cubeIndex }
+                let panelIndexInCube = sameCubePanels.firstIndex { $0.id == panel.id } ?? 0
+                
+                // Panel pozisyonunu seçilen cube'in grid hizasında konumlandır
+                let panelPosition = calculateDetailPanelPosition(
+                    cubeIndex: panel.cubeIndex,
+                    panelIndex: panelIndexInCube,
+                    totalPanelsForCube: sameCubePanels.count
+                )
+                detailPanelAnchor.position = panelPosition
+                
+                // Panel rotasyonunu cube pozisyonuna göre ayarla (kullanıcıya dönük)
+                let panelRotation = calculateDetailPanelRotation(cubeIndex: panel.cubeIndex)
+                detailPanelAnchor.orientation = panelRotation
                 
                 content.add(detailPanelAnchor)
             }
@@ -446,10 +458,21 @@ struct ImmersiveView: View {
                     let detailPanelAnchor = Entity()
                     detailPanelAnchor.name = "FeatureMapDetailPanelAnchor_\(panel.id)"
                     
-                    // Her panel'i biraz farklı pozisyonda başlat
-                    let index = appModel.openFeatureMapPanels.firstIndex { $0.id == panel.id } ?? 0
-                    let offsetX = Float(index) * 0.6 - Float(appModel.openFeatureMapPanels.count - 1) * 0.3
-                    detailPanelAnchor.position = SIMD3<Float>(offsetX, 1.5, -1.5)
+                    // Aynı cube'den olan panel'lerin index'ini hesapla
+                    let sameCubePanels = appModel.openFeatureMapPanels.filter { $0.cubeIndex == panel.cubeIndex }
+                    let panelIndexInCube = sameCubePanels.firstIndex { $0.id == panel.id } ?? 0
+                    
+                    // Panel pozisyonunu seçilen cube'in grid hizasında konumlandır
+                    let panelPosition = calculateDetailPanelPosition(
+                        cubeIndex: panel.cubeIndex,
+                        panelIndex: panelIndexInCube,
+                        totalPanelsForCube: sameCubePanels.count
+                    )
+                    detailPanelAnchor.position = panelPosition
+                    
+                    // Panel rotasyonunu cube pozisyonuna göre ayarla (kullanıcıya dönük)
+                    let panelRotation = calculateDetailPanelRotation(cubeIndex: panel.cubeIndex)
+                    detailPanelAnchor.orientation = panelRotation
                     
                     content.add(detailPanelAnchor)
                 }
@@ -1027,6 +1050,82 @@ struct ImmersiveView: View {
         lineEntity.orientation = quaternion
         
         return lineEntity
+    }
+    
+    // Helper function: Detail panel pozisyonunu cube pozisyonuna göre hesapla
+    private func calculateDetailPanelPosition(cubeIndex: Int, panelIndex: Int, totalPanelsForCube: Int) -> SIMD3<Float> {
+        // AlexNet küp pozisyonları (ImmersiveView'daki ile aynı)
+        let alexnetCubePositions: [SIMD3<Float>] = [
+            SIMD3<Float>(-1.2, 0, 0),    // 0: Sol (conv1)
+            SIMD3<Float>(0, 0, 0),       // 1: Orta (maxp1)
+            SIMD3<Float>(1.2, 0, 0),     // 2: Sağ (conv2)
+            SIMD3<Float>(2.4, 0, 1.2),  // 3: Sağ-ön (maxp2)
+            SIMD3<Float>(2.4, 0, 2.4),  // 4: Sağ-arka (conv3)
+            SIMD3<Float>(-1.2, 0, 3.6), // 5: Arka-sol (conv4)
+            SIMD3<Float>(0, 0, 3.6),    // 6: Arka-orta (conv5)
+            SIMD3<Float>(1.2, 0, 3.6)   // 7: Arka-sağ (maxp3)
+        ]
+        
+        // Base anchor position (küplerle aynı base)
+        let baseAnchorPos = SIMD3<Float>(x: 1.2, y: 1.0, z: -1.5)
+        
+        // Gallery Y offset (grid'lerle aynı yükseklik)
+        let alexnetGalleryYOffset: Float = 0.8
+        
+        // Seçilen cube'in pozisyonu
+        guard cubeIndex < alexnetCubePositions.count else {
+            return SIMD3<Float>(0, baseAnchorPos.y + alexnetGalleryYOffset, -1.5) // Fallback position
+        }
+        
+        let cubeRelativePos = alexnetCubePositions[cubeIndex]
+        let galleryAbsolutePos = SIMD3<Float>(
+            x: baseAnchorPos.x + cubeRelativePos.x,
+            y: baseAnchorPos.y + alexnetGalleryYOffset, // Grid ile aynı yükseklik
+            z: baseAnchorPos.z + cubeRelativePos.z
+        )
+        
+        // Panel pozisyonu: Grid hizasında ve önünde
+        let panelYOffset: Float = 0.0   // Grid ile aynı hizda
+        
+        // Z offset'i cube pozisyonuna göre ayarla
+        let panelZOffset: Float
+        switch cubeIndex {
+        case 0, 1, 2: // Ön taraftaki küpler (Conv1, MaxP1, Conv2)
+            panelZOffset = 0.0  // Daha çok öne (kullanıcıya yakın)
+        case 3, 4: // Sağ taraftaki küpler (MaxP2, Conv3)
+            panelZOffset = -0.5  // Orta mesafe
+        case 5, 6, 7: // Arka taraftaki küpler (Conv4, Conv5, MaxP3)
+            panelZOffset = -0.3  // Az öne (grid'in hemen önü)
+        default:
+            panelZOffset = -0.5  // Default
+        }
+        
+        // Aynı cube'den birden fazla panel varsa yan yana diz
+        let panelSpacing: Float = 0.7
+        let totalWidth = Float(totalPanelsForCube - 1) * panelSpacing
+        let startX = galleryAbsolutePos.x - (totalWidth / 2.0)
+        let panelX = startX + (Float(panelIndex) * panelSpacing)
+        
+        return SIMD3<Float>(
+            x: panelX,
+            y: galleryAbsolutePos.y + panelYOffset,
+            z: galleryAbsolutePos.z + panelZOffset
+        )
+    }
+    
+    // Helper function: Detail panel rotasyonunu cube pozisyonuna göre hesapla
+    private func calculateDetailPanelRotation(cubeIndex: Int) -> simd_quatf {
+        // Cube pozisyonuna göre kullanıcıya dönük rotasyon
+        switch cubeIndex {
+        case 3, 4: // Sağ taraftaki küpler (3: Sağ-ön, 4: Sağ-arka)
+            // 90° sol döndür (kullanıcıya baksın)
+            return simd_quatf(angle: -Float.pi / 2, axis: SIMD3<Float>(0, 1, 0))
+        case 5, 6, 7: // Arka taraftaki küpler (5: Arka-sol, 6: Arka-orta, 7: Arka-sağ)
+            // 180° döndür (kullanıcıya baksın)
+            return simd_quatf(angle: Float.pi, axis: SIMD3<Float>(0, 1, 0))
+        default: // Ön taraftaki küpler (0: Sol, 1: Orta, 2: Sağ) - rotasyon yok
+            return simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+        }
     }
 }
 
