@@ -11,7 +11,7 @@ struct AlexNetFeatureMapGalleryView: View {
     let cubeIndex: Int
     let inputIndex: Int
     let selectedInputName: String?
-    let onFeatureMapTap: (Int, Int) -> Void // (cubeIndex, featureMapIndex) -> Void
+    let onFeatureMapTap: (Int, Int) -> Void
     
     // Her küp için grid sayıları ve boyutları
     private var gridConfig: (count: Int, columns: Int, rows: Int) {
@@ -22,15 +22,14 @@ struct AlexNetFeatureMapGalleryView: View {
         let (cols, rows): (Int, Int)
         switch count {
         case 64:
-            (cols, rows) = (8, 8)      // 8x8 = 64 (kare)
+            (cols, rows) = (8, 8)
         case 192:
-            (cols, rows) = (16, 12)    // 16x12 = 192 (dikdörtgen)
+            (cols, rows) = (16, 12)
         case 384:
-            (cols, rows) = (24, 16)    // 24x16 = 384 (dikdörtgen)
+            (cols, rows) = (24, 16)
         case 256:
-            (cols, rows) = (16, 16)    // 16x16 = 256 (kare)
+            (cols, rows) = (16, 16)
         default:
-            // Fallback: kareye yakın
             let sqrtCount = Int(ceil(sqrt(Double(count))))
             (cols, rows) = (sqrtCount, sqrtCount)
         }
@@ -62,58 +61,17 @@ struct AlexNetFeatureMapGalleryView: View {
                 .foregroundColor(.white)
                 .padding(.bottom, 8)
             
-            // Grid - PNG'ler ile
+            // Grid - PNGleri ile LAZY LOADING
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: gridConfig.columns), spacing: 5) {
                 ForEach(0..<gridConfig.count, id: \.self) { index in
-                    // Tıklanabilir grid elemanları - PNG ile
+                    // Tıklanabilir grid elemanları
                     Button(action: {
                         onFeatureMapTap(cubeIndex, index)
                     }) {
-                        let pngFileName = getPngFileName(for: index)
-                        
-                        Group {
-                            if let image = UIImage(named: pngFileName) {
-                                // PNG bulundu - göster
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    .overlay(
-                                        // Index numarasını alt köşede göster
-                                        VStack {
-                                            Spacer()
-                                            HStack {
-                                                Spacer()
-                                                Text("\(index)")
-                                                    .font(.caption2)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.white)
-                                                    .padding(4)
-                                                    .background(Color.black.opacity(0.7))
-                                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                            }
-                                        }
-                                        .padding(4)
-                                    )
-                            } else {
-                                // PNG bulunamadı - placeholder
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(randomColor(for: index))
-                                    .frame(width: 60, height: 60)
-                                    .overlay(
-                                        VStack(spacing: 2) {
-                                            Image(systemName: "photo")
-                                                .font(.caption)
-                                                .foregroundColor(.white.opacity(0.8))
-                                            Text("\(index)")
-                                                .font(.caption2)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                        }
-                                    )
-                            }
-                        }
+                        LazyImageView(
+                            pngFileName: getPngFileName(for: index),
+                            index: index
+                        )
                     }
                     .buttonStyle(PlainButtonStyle())
                     .scaleEffect(1.0)
@@ -126,8 +84,8 @@ struct AlexNetFeatureMapGalleryView: View {
         }
         .padding()
         .frame(
-            width: CGFloat(gridConfig.columns * 65 + 80), // Daha büyük panel genişliği
-            height: CGFloat(gridConfig.rows * 65 + 160)   // Daha büyük panel yüksekliği
+            width: CGFloat(gridConfig.columns * 65 + 80),
+            height: CGFloat(gridConfig.rows * 65 + 160)
         )
         .background(
             LinearGradient(
@@ -164,7 +122,7 @@ struct AlexNetFeatureMapGalleryView: View {
         }
     }
     
-    // Layer adını cube index'ten çıkar
+    // Layer adını cube indexten çıkar
     private func getLayerName() -> String {
         let layerNames = [
             "conv1",    // 0: CONV1
@@ -178,8 +136,93 @@ struct AlexNetFeatureMapGalleryView: View {
         ]
         return layerNames[cubeIndex]
     }
+}
+
+// LAZY IMAGE LOADING
+struct LazyImageView: View {
+    let pngFileName: String
+    let index: Int
     
-    // Rastgele renk üretici (placeholder için)
+    @State private var loadedImage: UIImage? = nil
+    @State private var isLoading = false
+    
+    var body: some View {
+        Group {
+            if let image = loadedImage {
+                // PNG yüklendiyse göster
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        // Index numarasını alt köşede göster
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Text("\(index)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(4)
+                                    .background(Color.black.opacity(0.7))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            }
+                        }
+                            .padding(4)
+                    )
+            } else if isLoading {
+                // Yükleniyor placeholderı
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    )
+            } else {
+                // PNG bulunamadı
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(randomColor(for: index))
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        VStack(spacing: 2) {
+                            Image(systemName: "photo")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                            Text("\(index)")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                        }
+                    )
+            }
+        }
+        .onAppear {
+            // Görünür olduğunda PNGyi lazy load et
+            loadImageAsync()
+        }
+    }
+    
+    private func loadImageAsync() {
+        guard !isLoading && loadedImage == nil else { return }
+        
+        isLoading = true
+        
+        // Background threadde image yükle
+        DispatchQueue.global(qos: .userInitiated).async {
+            let image = UIImage(named: pngFileName)
+            
+            // Main threadde UI ı güncelle
+            DispatchQueue.main.async {
+                self.loadedImage = image
+                self.isLoading = false
+            }
+        }
+    }
+    
     private func randomColor(for index: Int) -> Color {
         let colors: [Color] = [
             .red, .orange, .yellow, .green, .blue, .purple, .pink, .cyan,
@@ -187,11 +230,11 @@ struct AlexNetFeatureMapGalleryView: View {
         ]
         return colors[index % colors.count].opacity(0.7)
     }
-}
-
-#Preview {
-    AlexNetFeatureMapGalleryView(cubeIndex: 0, inputIndex: 0, selectedInputName: "cat") { cubeIndex, featureMapIndex in
-        print("Tapped cube \(cubeIndex), feature map \(featureMapIndex)")
+    
+    #Preview {
+        AlexNetFeatureMapGalleryView(cubeIndex: 0, inputIndex: 0, selectedInputName: "cat") { cubeIndex, featureMapIndex in
+            print("Tapped cube \(cubeIndex), feature map \(featureMapIndex)")
+        }
+        .preferredColorScheme(.dark)
     }
-    .preferredColorScheme(.dark)
 }

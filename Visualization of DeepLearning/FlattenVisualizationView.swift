@@ -41,7 +41,6 @@ struct FlattenVisualizationView: View {
                         )
                 }
                 
-                // 16x16 tıklanabilir grid overlay
                 GridOverlay(
                     rows: 16,
                     cols: 16,

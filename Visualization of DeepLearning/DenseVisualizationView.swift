@@ -50,7 +50,7 @@ struct DenseVisualizationView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 700, height: 700)
                         .overlay(
-                            // Tıklanabilir grid overlay - PNG'nin gerçek boyutlarına uygun
+                            // Tıklanabilir grid overlay tam olarak arkadaki PNG ile aynı konumda üst üste
                             GridOverlay(
                                 rows: gridRows,
                                 cols: gridCols,
@@ -58,7 +58,7 @@ struct DenseVisualizationView: View {
                                 imageHeight: aspectRatio > 1 ? 700 / aspectRatio : 700
                             ) { row, col in
                                 let neuronIndex = row * gridCols + col
-                                let layerKey = layerType.replacingOccurrences(of: "_", with: "") // "dense_1" → "dense1"
+                                let layerKey = layerType.replacingOccurrences(of: "_", with: "") 
                                 appModel.selectNeuron(layer: layerKey, index: neuronIndex)
                             }
                         )

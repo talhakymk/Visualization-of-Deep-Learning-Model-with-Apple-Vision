@@ -31,7 +31,7 @@ func makeLenetCubesAnchor(labels: [String] = ["CONVOLUTION 1\n(27x27x6)", "MAXPO
         var material = SimpleMaterial()
         material.color = .init(tint: cubeColors[i], texture: nil)
         material.metallic = .float(0.8)        // Metalik parlaklık
-        material.roughness = .float(0.2)       // Düşük pürüzlülük (daha parlak)
+        material.roughness = .float(0.2)       // Düşük pürüz
         
         let cube = ModelEntity(mesh: mesh, materials: [material])
         cube.name = "LenetCube_\(i)"
@@ -41,7 +41,7 @@ func makeLenetCubesAnchor(labels: [String] = ["CONVOLUTION 1\n(27x27x6)", "MAXPO
         cube.components.set(InputTargetComponent())
         cube.components.set(HoverEffectComponent())
         
-        // Küpleri konumlandırırken yatak konumlandıralım
+        // Küpleri konumlandırırken yatayk konumlandıralım
         let x = startX + Float(i) * cubeSpacing
         cube.position = SIMD3<Float>(x, 0, 0)
         

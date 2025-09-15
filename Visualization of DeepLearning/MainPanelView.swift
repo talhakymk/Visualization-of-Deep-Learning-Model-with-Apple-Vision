@@ -9,22 +9,21 @@ struct MainPanelView: View {
     
     var body: some View {
         ZStack {
-            // İçerik: seçilen modele göre
+            //seçilen modele göre içerik
             panelContent
         }
-        // Model değişince orta seçimi sıfırlayalım
+        // Model değişince orta seçimi sıfırla
          .onChange(of: appModel.selectedModel) { _, _ in
              appModel.selectedInputImageName = nil
          }
     }
 
     
-    // MARK: - İçerik: Seçime göre düzen
     @ViewBuilder
     private var panelContent: some View {
         switch appModel.selectedModel {
         case .lenet:
-            // Başlık yukarıda, metin tam ortada, görsel grid aşağıda
+            // Başlık yukarıda metin tam ortada görsel grid aşağıda
             ZStack {
                 // Üst başlık
                 VStack(spacing: 0) {
@@ -54,14 +53,14 @@ struct MainPanelView: View {
                     }
                 }
                 
-                // Alt kısım: 2x5 görsel grid
+                // Alt kısım
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     
                     let inputNames = (0..<10).map { "input_\($0)" }
                     
                     VStack(spacing: 10) {
-                        // 1. satır (0...4)
+                        // 1. satır
                         HStack(spacing: 0) {
                             ForEach(0..<5) { idx in
                                 Button {
@@ -81,7 +80,7 @@ struct MainPanelView: View {
                         }
                         .clipShape(.rect(cornerRadius: 8))
                         
-                        // 2. satır (5...9)
+                        // 2. satır
                         HStack(spacing: 0) {
                             ForEach(5..<10) { idx in
                                 Button {
@@ -106,9 +105,9 @@ struct MainPanelView: View {
             }
             
         case .alexnet:
-            // Başlık yukarıda, metin ortada, altta 3 görsel buton (cat, dog, ship)
+            // Başlık yukarıda metin ortada altta 3 görsel buton (cat, dog, ship)
             ZStack {
-                // Üst başlık (aynı stil)
+                // Üst başlık
                 VStack(spacing: 0) {
                     Text("IMAGENET DATASET ON ALEXNET MODEL")
                         .font(.title)
@@ -136,7 +135,7 @@ struct MainPanelView: View {
                     }
                 }
                 
-                // Alt kısım: 3 görsel buton
+                // 3 görsel buton
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     

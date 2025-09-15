@@ -9,15 +9,15 @@ import Foundation
 import RealityKit
 import UIKit
 
-// AlexNet Neural Network Model (4 layer with 4 spheres each)
+// AlexNet Neural Network Model
 func makeAlexNetNeuralNetworkAnchor() -> Entity {
     let anchor = Entity()
     anchor.name = "AlexNetNeuralNetworkAnchor"
     
     let sphereRadius: Float = 0.05
-    let layerSpacing: Float = 0.6    // Layer'lar arası mesafe
+    let layerSpacing: Float = 0.6
     
-    // Her layer için farklı renkler (mavi tonları)
+    // Her layer için farklı renkler
     let layerColors: [UIColor] = [
         UIColor(red: 0.3, green: 0.5, blue: 1.0, alpha: 1.0),   // Açık mavi
         UIColor(red: 0.2, green: 0.4, blue: 0.9, alpha: 1.0),   // Orta mavi
@@ -25,15 +25,15 @@ func makeAlexNetNeuralNetworkAnchor() -> Entity {
         UIColor(red: 0.0, green: 0.2, blue: 0.7, alpha: 1.0)    // En koyu mavi
     ]
     
-    // Manuel Y pozisyonları: 1-2 kısa, 2-3 kısa, 3-4 uzun
+    // Y pozisyonları
     let neuronYPositions: [Float] = [
-        0.7,        // 1. nöron (en üst)
-        0.4,        // 2. nöron (1'den kısa mesafe)
-        0.1,       // 3. nöron (2'den kısa mesafe)
-        -0.7        // 4. nöron (3'ten uzun mesafe)
+        0.7,
+        0.4,
+        0.1,
+        -0.7
     ]
     
-    // 4 layer, her layer'da 4 nöron
+    // 4 layer her layerda 4 nöron
     for layerIndex in 0..<4 {
         for neuronIndex in 0..<4 {
             // Sphere mesh ve material
@@ -70,10 +70,10 @@ func makeAlexNetConnectionLines() -> Entity {
     let anchor = Entity()
     anchor.name = "AlexNetConnectionLinesAnchor"
     
-    let layerSpacing: Float = 0.6    // Layer'lar arası mesafe (neuron anchor ile aynı)
-    let neuronYPositions: [Float] = [0.7, 0.4, 0.1, -0.7]  // Nöron Y pozisyonları (neuron anchor ile aynı)
+    let layerSpacing: Float = 0.6
+    let neuronYPositions: [Float] = [0.7, 0.4, 0.1, -0.7]
     
-    let lineThickness: Float = 0.005  // Çizgi kalınlığı
+    let lineThickness: Float = 0.005
     
     // Çizgi materyali
     var lineMaterial = SimpleMaterial()
@@ -81,13 +81,13 @@ func makeAlexNetConnectionLines() -> Entity {
     lineMaterial.metallic = .float(0.3)
     lineMaterial.roughness = .float(0.7)
     
-    // 3 layer arası bağlantı (Layer 0→1, 1→2, 2→3)
+    // 3 layer arası bağlantı
     for sourceLayer in 0..<3 {
         let targetLayer = sourceLayer + 1
         
-        // Source layer'daki her nöron
+        // Source layerdaki her nöron
         for sourceNeuron in 0..<4 {
-            // Target layer'daki her nöron
+            // Target layerdaki her nöron
             for targetNeuron in 0..<4 {
                 
                 // Başlangıç ve bitiş pozisyonları
@@ -102,7 +102,7 @@ func makeAlexNetConnectionLines() -> Entity {
                     0
                 )
                 
-                // Çizgi oluştur
+                // Çizgi oluşturma
                 let connectionLine = createConnectionLine(
                     from: startPos,
                     to: endPos,

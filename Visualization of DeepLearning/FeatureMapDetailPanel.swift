@@ -14,7 +14,7 @@ struct FeatureMapDetailPanel: View {
     let selectedInputName: String?
     let onClose: () -> Void
     
-    // Hover states for interactive elements
+    // Hover efekti için bool
     @State private var isCloseButtonHovered = false
     @State private var isDragHandleHovered = false
     
@@ -29,20 +29,19 @@ struct FeatureMapDetailPanel: View {
     
     // PNG dosya adını generate et
     private var pngFileName: String {
-        // Input adını belirle (cat, dog, ship, vs.)
+        // Input adını belirle
         let inputName = getInputName()
         
-        // Layer adını belirle (conv1, maxp1, conv2, vs.)
+        // Layer adını belirle
         let layerName = getLayerName()
         
-        // Dosya adı: input_layer_index (örn: cat_conv1_45)
+        // Dosya adı: input_layer_index
         return "\(inputName)_\(layerName)_\(featureMapIndex)"
     }
     
-    // Input adını çıkar (gerçek seçilen input'tan)
+    // Input adını çıkar
     private func getInputName() -> String {
         if let selectedInput = selectedInputName {
-            // "input_0" -> "0", "cat" -> "cat", "dog" -> "dog"
             if selectedInput.hasPrefix("input_") {
                 let suffix = selectedInput.dropFirst("input_".count)
                 return suffix.description
@@ -50,7 +49,6 @@ struct FeatureMapDetailPanel: View {
                 return selectedInput
             }
         } else {
-            // Fallback: input index'e göre varsayılan isimler
             let inputNames = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
             return inputNames[min(inputIndex, inputNames.count - 1)]
         }
@@ -59,21 +57,20 @@ struct FeatureMapDetailPanel: View {
     // Layer adını cube index'ten çıkar
     private func getLayerName() -> String {
         let layerNames = [
-            "conv1",    // 0: CONV1
-            "maxp1",    // 1: POOL1  
-            "conv2",    // 2: CONV2
-            "maxp2",    // 3: POOL2
-            "conv3",    // 4: CONV3
-            "conv4",    // 5: CONV4
-            "conv5",    // 6: CONV5
-            "maxp3"     // 7: POOL3
+            "conv1",
+            "maxp1",
+            "conv2",
+            "maxp2",
+            "conv3",
+            "conv4",
+            "conv5",
+            "maxp3"
         ]
         return layerNames[cubeIndex]
     }
     
     var body: some View {
         VStack(spacing: 16) {
-            // Başlık çubuğu
             HStack {
                 Text(panelTitle)
                     .font(.title2)
@@ -82,11 +79,11 @@ struct FeatureMapDetailPanel: View {
                 
                 Spacer()
                 
-                // Kapatma butonu - Hover effect ile
+                // Kapatma butonu
                 ZStack {
                     Circle()
                         .fill(isCloseButtonHovered ? Color.red.opacity(0.9) : Color.red.opacity(0.6))
-                        .frame(width: 50, height: 50) // Daha büyük tap area
+                        .frame(width: 50, height: 50) // Tıklanabilir alanı
                         .scaleEffect(isCloseButtonHovered ? 1.1 : 1.0)
                         .animation(.easeInOut(duration: 0.2), value: isCloseButtonHovered)
                     
@@ -99,19 +96,19 @@ struct FeatureMapDetailPanel: View {
                     isCloseButtonHovered = hovering
                 }
                 .onTapGesture {
-                    print("🔴 Close button tapped for panel: \(cubeIndex)-\(featureMapIndex)")
+                    print("Close button tapped: \(cubeIndex)-\(featureMapIndex)")
                     onClose()
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
             
-            // İçerik alanı (PNG ile)
+            // İçerik alanı
             VStack(spacing: 20) {
-                // Feature map preview alanı - PNG yükleme
+                // Feature map preview alanı
                 Group {
                     if let image = UIImage(named: pngFileName) {
-                        // PNG bulundu - göster
+                        // PNG bulundu
                         Image(uiImage: image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -122,7 +119,7 @@ struct FeatureMapDetailPanel: View {
                                     .stroke(Color.white.opacity(0.3), lineWidth: 2)
                             )
                     } else {
-                        // PNG bulunamadı - placeholder göster
+                        // PNG bulunamadı
                         RoundedRectangle(cornerRadius: 12)
                             .fill(
                                 LinearGradient(
@@ -165,9 +162,8 @@ struct FeatureMapDetailPanel: View {
                 .padding(.horizontal, 20)
             }
             
-            // Drag handle (alt kısımda) - Daha belirgin drag zone
+            // Alttaki drag handle kısmı
             VStack(spacing: 4) {
-                // Drag zone indicator text
                 Text("Drag to move")
                     .font(.caption2)
                     .foregroundColor(isDragHandleHovered ? .white.opacity(0.8) : .white.opacity(0.4))
@@ -196,7 +192,7 @@ struct FeatureMapDetailPanel: View {
             
             Spacer()
         }
-        .frame(width: 500, height: 600)
+        .frame(width: 500, height: 630)
         .background(
             LinearGradient(
                 colors: [

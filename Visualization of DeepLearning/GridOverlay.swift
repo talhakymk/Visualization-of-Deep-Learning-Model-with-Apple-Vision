@@ -29,10 +29,9 @@ struct GridOverlay: View {
                             .contentShape(Rectangle()) // Tıklanabilir alan
                             .onTapGesture {
                                 onTap(row, col)
-                                print("🎯 Nöron tıklandı: Row \(row), Col \(col), Index: \(row * cols + col)")
+                                print("Tıklanan Nöron: Row \(row), Col \(col), Index: \(row * cols + col)")
                             }
                             .overlay(
-                                // Debug için görünür kenarlık (isteğe bağlı)
                                 Rectangle()
                                     .stroke(.white.opacity(0.1), lineWidth: 0.5)
                             )

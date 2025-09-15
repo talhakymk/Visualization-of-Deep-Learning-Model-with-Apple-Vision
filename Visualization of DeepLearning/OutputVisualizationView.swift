@@ -19,16 +19,16 @@ struct OutputVisualizationView: View {
                 .fontWeight(.semibold)
                 .padding(.bottom, 8)
             
-            // Vertical panel with digits 0-9
+            // Lnetteki output sonucu için dikey panel
             VStack(spacing: 30) {
                 ForEach(0..<10, id: \.self) { digit in
                     ZStack {
-                        // Background for each digit
+                        // Her sayı için arkaplan
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.gray.opacity(0.2))
                             .frame(width: 80, height: 65)
                         
-                        // Black square indicator for selected input
+                        // seçili inputu siyahla işaretleyeilm
                         if digit == appModel.currentInputIndex {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(Color.black)

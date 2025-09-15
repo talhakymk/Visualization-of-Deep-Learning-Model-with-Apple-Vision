@@ -25,12 +25,12 @@ struct LenetSmallFiltersPanel: View {
     
     var body: some View {
         ZStack {
-            // Mavi arka plan (panelin tamamı)
+            // Mavi arka plan
             Color.blue.opacity(0.85)
                 .clipShape(.rect(cornerRadius: 16))
 
             VStack(spacing: 10) {
-                // ÜST: 2 satır x 3 sütun grid (butonlar üst bölgede dursun)
+                // 2 satır x 3 sütun grid
                 VStack(spacing: 10) {
                     ForEach(0..<2, id: \.self) { row in
                         HStack(spacing: 10) {
@@ -56,10 +56,10 @@ struct LenetSmallFiltersPanel: View {
                     }
                 }
 
-                // ORTA: Boşluk (metin için alt bölgeyi açmak amacıyla)
+                //Boşluk (metin için alt bölgeyi açmak amacıyla)
                 Spacer(minLength: 8)
 
-                // ALT: Tıklanınca görünen metin alanı
+                // Tıklanınca görüncek metinin alanı
                 if let idx = selectedIndex {
                     Text(descriptions[safe: idx] ?? "\(idx)")
                         .font(.system(size: 20, weight: .semibold))
@@ -73,7 +73,7 @@ struct LenetSmallFiltersPanel: View {
             }
             .padding(12)
         }
-        // Panel boyutu: butonlar + alttaki metin için yeterli yükseklik
+        // Panel boyutu
         .frame(width: 420, height: 320)
     }
 }

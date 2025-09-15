@@ -24,7 +24,7 @@ func makeAlexNetCubesAnchor(labels: [String] = [
     
     let cubeSize: Float = 0.2
     
-    // AlexNet için farklı renk paleti (turuncu-kırmızı tonları)
+    // Küpler için farklı renk tonları
     let cubeColors: [UIColor] = [
         UIColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0),   // Turuncu
         UIColor(red: 1.0, green: 0.4, blue: 0.1, alpha: 1.0),   // Koyu turuncu
@@ -36,32 +36,32 @@ func makeAlexNetCubesAnchor(labels: [String] = [
         UIColor(red: 0.9, green: 0.2, blue: 0.1, alpha: 1.0)    // Koyu kırmızı
     ]
     
-    // 8 küpü 3 grupta yerleştir:
+    // 8 küpü 3 grup
     // Grup 1: Önde 3 küp (0, 1, 2) - rotasyon yok
-    // Grup 2: Sağda 2 küp (3, 4) - 90° döndür (kullanıcıya baksın)
-    // Grup 3: Arkada 3 küp (5, 6, 7) - 180° döndür (kullanıcıya baksın)
+    // Grup 2: Sağda 2 küp (3, 4) - 90 döndür
+    // Grup 3: Arkada 3 küp (5, 6, 7) - 180 döndür
     
     let positions: [SIMD3<Float>] = [
-        // Önde 3 küp (kullanıcının önünde, main panel sağında) - mesafeleri arttırıldı
-        SIMD3<Float>(-1.2, 0, 0),    // Sol (daha uzak)
+        // Öndeki 3 küp
+        SIMD3<Float>(-1.2, 0, 0),    // Sol
         SIMD3<Float>(0, 0, 0),       // Orta
-        SIMD3<Float>(1.2, 0, 0),     // Sağ (daha uzak)
+        SIMD3<Float>(1.2, 0, 0),     // Sağ
         
-        // Sağda 2 küp (kullanıcının sağında) - mesafeleri arttırıldı
-        SIMD3<Float>(2.4, 0, 1.2),  // Sağ-ön (daha uzak)
-        SIMD3<Float>(2.4, 0, 2.4),   // Sağ-arka (daha uzak)
+        // Sağdaki 2 küp
+        SIMD3<Float>(2.4, 0, 1.2),  // Sağ-ön
+        SIMD3<Float>(2.4, 0, 2.4),   // Sağ-arka
         
-        // Arkada 3 küp (kullanıcının arkasında) - mesafeleri arttırıldı
-        SIMD3<Float>(-1.2, 0, 3.6),  // Arka-sol (daha uzak)
-        SIMD3<Float>(0, 0, 3.6),     // Arka-orta (daha uzak)
-        SIMD3<Float>(1.2, 0, 3.6)    // Arka-sağ (daha uzak)
+        // Arkadaki 3 küp
+        SIMD3<Float>(-1.2, 0, 3.6),  // Arka-sol
+        SIMD3<Float>(0, 0, 3.6),     // Arka-orta
+        SIMD3<Float>(1.2, 0, 3.6)    // Arka-sağ
     ]
     
-    // Her grup için rotasyon (Y-ekseni etrafında)
+    // Her grup için y ekseninde rotasyon
     let rotations: [Float] = [
-        0, 0, 0,        // Önde 3 küp - rotasyon yok
-        90, 90,         // Sağda 2 küp - 90° (kullanıcıya baksın)
-        180, 180, 180   // Arkada 3 küp - 180° (kullanıcıya baksın)
+        0, 0, 0,        // Önde 3 küp
+        90, 90,         // Sağda 2 küp - 90
+        180, 180, 180   // Arkada 3 küp - 180
     ]
     
     for i in 0..<8 {
@@ -70,7 +70,7 @@ func makeAlexNetCubesAnchor(labels: [String] = [
         var material = SimpleMaterial()
         material.color = .init(tint: cubeColors[i], texture: nil)
         material.metallic = .float(0.8)        // Metalik parlaklık
-        material.roughness = .float(0.2)       // Düşük pürüzlülük (daha parlak)
+        material.roughness = .float(0.2)       // Pürüzlülük ayarı
         
         let cube = ModelEntity(mesh: mesh, materials: [material])
         cube.name = "AlexNetCube_\(i)"
@@ -103,33 +103,33 @@ func makeAlexNetCubesAnchor(labels: [String] = [
         let textEntity = ModelEntity(mesh: textMesh, materials: [textMaterial])
         textEntity.name = "AlexNetCubeLabel_\(i)"
         
-        // Label'ı küpün altına yerleştir ve rotasyona göre ayarla
+        // Labelı küpün altına yerleştir ve rotasyona göre ayarla
         let yBelow = -(cubeSize / 2.0) - 0.06 - 0.2
         
         // Rotasyona göre label pozisyonunu ayarla
         var labelX = positions[i].x - 0.16
         var labelZ = positions[i].z
         
-        // Sağdaki küpler (90°) için label pozisyonunu ayarla
+        // Sağdaki küpler için label pozisyonunu ayarla
         if rotations[i] == 90 {
-            // Küpün tam altında olsun (x sabit), kullanıcıya dönük olsun (z ön tarafta)
+            // Küpün tam altında olsun
             labelX = positions[i].x
-            labelZ = positions[i].z - 0.15 // Kullanıcıya doğru (pozitif z yönü) - daha uzak
+            labelZ = positions[i].z - 0.15
         }
-        // Arkadaki küpler (180°) için label pozisyonunu ayarla
+        // Arkadaki küpler label pozisyonunu ayarla
         else if rotations[i] == 180 {
-            labelX = positions[i].x + 0.20 // Daha uzak offset
+            labelX = positions[i].x + 0.20
             labelZ = positions[i].z
         }
         
         textEntity.position = SIMD3<Float>(labelX, yBelow, labelZ)
         
-        // Sağdaki küpler için özel rotasyon (label'ı kullanıcıya döndür)
+        // Sağdaki küpler için özel rotasyon
         if rotations[i] == 90 {
-            // Label'ı kullanıcıya dönecek şekilde rotasyonunu ayarla (-90° yaparak kullanıcıya çevir)
+            // Labelı kullanıcıya dönecek şekilde rotasyonunu ayarla 90 yaparak
             textEntity.transform.rotation = simd_quatf(angle: -rotationAngle, axis: SIMD3<Float>(0, 1, 0))
         } else {
-            // Diğer label'lar küplerle aynı rotasyonda
+            // Diğer labellar küplerle aynı rotasyonda
             textEntity.transform.rotation = simd_quatf(angle: rotationAngle, axis: SIMD3<Float>(0, 1, 0))
         }
         

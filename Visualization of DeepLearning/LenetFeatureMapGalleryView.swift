@@ -7,9 +7,7 @@
 
 import SwiftUI
 
-/// Seçilen küpe göre gelen görselleri grid olarak gösterir.
-/// - images: gösterilecek görsel adları (Assets.xcassets içinde)
-/// - columns/rows: grid düzeni
+
 struct LenetFeatureMapGalleryView: View {
     let images: [String]
     let columns: Int
@@ -33,7 +31,6 @@ struct LenetFeatureMapGalleryView: View {
                                     .fill(.gray.opacity(0.3))
                                     .frame(height: 64)
                                 
-                                // Gerçek resim - Bundle'dan manuel yükleme
                                 if let uiImage = UIImage(named: name) {
                                     Image(uiImage: uiImage)
                                         .resizable()
@@ -41,7 +38,6 @@ struct LenetFeatureMapGalleryView: View {
                                         .frame(height: 64)
                                         .clipped()
                                 } else {
-                                    // Eğer bulamazsa error göster
                                     VStack {
                                         Image(systemName: "exclamationmark.triangle")
                                             .foregroundColor(.red)
