@@ -73,24 +73,25 @@ func makeAlexNetConnectionLines() -> Entity {
     let layerSpacing: Float = 0.6
     let neuronYPositions: [Float] = [0.7, 0.4, 0.1, -0.7]
     
-    let lineThickness: Float = 0.005
+    let lineThickness: Float = 0.003 // İnce çizgi
     
-    // Çizgi materyali
+    // İnce beyaz çizgi materyali
     var lineMaterial = SimpleMaterial()
-    lineMaterial.color = .init(tint: UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 0.6), texture: nil)
-    lineMaterial.metallic = .float(0.3)
-    lineMaterial.roughness = .float(0.7)
+    lineMaterial.color = .init(tint: UIColor.white, texture: nil)
+    lineMaterial.metallic = .float(0.0)
+    lineMaterial.roughness = .float(0.1)
     
-    // 3 layer arası bağlantı
+    // 3 layer arası bağlantı - SADECE KOMŞU LAYERLAR
     for sourceLayer in 0..<3 {
         let targetLayer = sourceLayer + 1
+        
+        print("🔗 Creating connections from layer \(sourceLayer) to layer \(targetLayer)")
         
         // Source layerdaki her nöron
         for sourceNeuron in 0..<4 {
             // Target layerdaki her nöron
             for targetNeuron in 0..<4 {
                 
-                // Başlangıç ve bitiş pozisyonları
                 let startPos = SIMD3<Float>(
                     Float(sourceLayer) * layerSpacing,
                     neuronYPositions[sourceNeuron],
@@ -101,6 +102,8 @@ func makeAlexNetConnectionLines() -> Entity {
                     neuronYPositions[targetNeuron],
                     0
                 )
+                
+                print("🔗   Connection: L\(sourceLayer)N\(sourceNeuron) (\(startPos)) → L\(targetLayer)N\(targetNeuron) (\(endPos))")
                 
                 // Çizgi oluşturma
                 let connectionLine = createConnectionLine(
@@ -127,42 +130,39 @@ private func createConnectionLine(from startPos: SIMD3<Float>, to endPos: SIMD3<
     let distance = length(direction)
     let normalizedDirection = normalize(direction)
     
-    // Çizgi için box mesh oluştur (uzunluk = distance, genişlik/yükseklik = thickness)
-    let mesh = MeshResource.generateBox(size: SIMD3<Float>(distance, thickness, thickness))
+    // Cylinder mesh oluştur 
+    let mesh = MeshResource.generateCylinder(height: distance, radius: thickness)
     let line = ModelEntity(mesh: mesh, materials: [material])
     
-    // Çizgiyi iki nokta arasına yerleştir
+    // Çizgiyi iki nokta arasında konumlandır ve döndür
     let midPoint = (startPos + endPos) / 2
     line.position = midPoint
     
     // Çizgiyi doğru yöne döndür
-    if distance > 0 {
-        // X-ekseni ile direction arasındaki açıyı hesapla
-        let xAxis = SIMD3<Float>(1, 0, 0)
-        let rotationAxis = cross(xAxis, normalizedDirection)
-        let rotationAngle = acos(dot(xAxis, normalizedDirection))
-        
-        if length(rotationAxis) > 0.001 {
-            let normalizedRotationAxis = normalize(rotationAxis)
-            line.transform.rotation = simd_quatf(angle: rotationAngle, axis: normalizedRotationAxis)
-        }
+    let defaultDirection = SIMD3<Float>(0, 1, 0) // Cylinder'ın varsayılan yönü
+    let rotationAxis = cross(defaultDirection, normalizedDirection)
+    let rotationAngle = acos(dot(defaultDirection, normalizedDirection))
+    
+    if length(rotationAxis) > 0.001 {
+        let normalizedRotationAxis = normalize(rotationAxis)
+        line.orientation = simd_quatf(angle: rotationAngle, axis: normalizedRotationAxis)
     }
     
     return line
 }
 
-// AlexNet Neural Network layer label'larını oluşturan fonksiyon
+// AlexNet Neural Network layer labellarını oluşturan fonksiyon
 func makeAlexNetLayerLabels() -> Entity {
     let anchor = Entity()
     anchor.name = "AlexNetLayerLabelsAnchor"
     
-    let layerSpacing: Float = 0.6    // Layer'lar arası mesafe (neuron anchor ile aynı)
-    let labelYPosition: Float = -1.0  // Label'ları en alt nöronun altında
+    let layerSpacing: Float = 0.6    // Layerlar arası mesafe 
+    let labelYPosition: Float = -1.0  // Labelları en alt nöronun altında
     
     // Layer sayıları
     let layerCounts = ["1000", "4096", "4096", "9216"]
     
-    // 4 layer için label'lar
+    // 4 layer için labellar
     for layerIndex in 0..<4 {
         // Label text mesh
         let labelText = layerCounts[layerIndex]
@@ -180,11 +180,11 @@ func makeAlexNetLayerLabels() -> Entity {
         let textEntity = ModelEntity(mesh: textMesh, materials: [textMaterial])
         textEntity.name = "AlexNetLayerLabel_\(layerIndex)"
         
-        // Label pozisyonu - layer'ın tam altında
+        // Label pozisyonu - layerın tam altında
         let x = Float(layerIndex) * layerSpacing
         textEntity.position = SIMD3<Float>(x + 0.08, labelYPosition, 0)  // -0.08 offset text merkezlemek için
         
-        // Label'ları kullanıcıya dönecek şekilde 180° döndür (ağ modeli arkada olduğu için)
+        // Labelları kullanıcıya dönecek şekilde 180 döndür
         textEntity.transform.rotation = simd_quatf(angle: Float.pi, axis: SIMD3<Float>(0, 1, 0))
         
         anchor.addChild(textEntity)

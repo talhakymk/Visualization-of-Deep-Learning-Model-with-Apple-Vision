@@ -47,9 +47,27 @@ struct ImmersiveView: View {
                 clearAlexNetEntities(content)
                 
             case .alexnet:
-                // AlexNet entityleri yoksa oluştur
-                if !content.entities.contains(where: { $0.name == "AlexNetCubesAnchor" }) {
+                // AlexNet entityleri yoksa oluştur 
+                let hasAlexNetCubes = content.entities.contains(where: { $0.name == "AlexNetCubesAnchor" })
+                let hasAlexNetNetwork = content.entities.contains(where: { $0.name == "AlexNetNeuralNetworkAnchor" })
+                
+                var hasAlexNetConnections = false
+                if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }) {
+                    hasAlexNetConnections = networkAnchor.children.contains(where: { $0.name == "AlexNetConnectionLinesEntity" })
+                }
+                
+                if !hasAlexNetCubes || !hasAlexNetNetwork || !hasAlexNetConnections {
+                    print("🔄 Setting up AlexNet entities - cubes: \(hasAlexNetCubes), network: \(hasAlexNetNetwork), connections: \(hasAlexNetConnections)")
                     setupAlexNetEntities(content, attachments)
+                    
+                    // Setup sonrası kontrol
+                    let hasAlexNetCubesAfter = content.entities.contains(where: { $0.name == "AlexNetCubesAnchor" })
+                    let hasAlexNetNetworkAfter = content.entities.contains(where: { $0.name == "AlexNetNeuralNetworkAnchor" })
+                    var hasAlexNetConnectionsAfter = false
+                    if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }) {
+                        hasAlexNetConnectionsAfter = networkAnchor.children.contains(where: { $0.name == "AlexNetConnectionLinesEntity" })
+                    }
+                    print("🔄 After setup - cubes: \(hasAlexNetCubesAfter), network: \(hasAlexNetNetworkAfter), connections: \(hasAlexNetConnectionsAfter)")
                 }
                 // LeNet entityleri varsa kaldır
                 clearLenetEntities(content)
@@ -85,16 +103,18 @@ struct ImmersiveView: View {
                 alexnetCubes.isEnabled = shouldShowAlexNetCubes
             }
             
-            // AlexNet Neural Network sadece AlexNet + input seçiliyse görünsün
+            // AlexNet Neural Network ve Connection Lines
             if let alexnetNetwork = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }) {
                 let shouldShowAlexNetNetwork = (appModel.selectedModel == .alexnet && appModel.selectedInputImageName != nil)
                 alexnetNetwork.isEnabled = shouldShowAlexNetNetwork
-            }
-            
-            // AlexNet Neural Network Connections sadece AlexNet + input seçiliyse görünsün
-            if let alexnetConnections = content.entities.first(where: { $0.name == "AlexNetConnectionLinesAnchor" }) {
-                let shouldShowAlexNetConnections = (appModel.selectedModel == .alexnet && appModel.selectedInputImageName != nil)
-                alexnetConnections.isEnabled = shouldShowAlexNetConnections
+                
+                // Connection lines entity'yi child olarak kontrol et ve enable et
+                if let connectionLinesEntity = alexnetNetwork.children.first(where: { $0.name == "AlexNetConnectionLinesEntity" }) {
+                    connectionLinesEntity.isEnabled = shouldShowAlexNetNetwork
+                    print("Connection lines entity enabled: \(shouldShowAlexNetNetwork)")
+                } else {
+                    print("Connection lines entity not found in neural network anchor children")
+                }
             }
             
             // AlexNet Neural Network Layer Labels sadece AlexNet + input seçiliyse görünsün
@@ -171,18 +191,6 @@ struct ImmersiveView: View {
                     // Loading bitince attachmentı kaldır
                     if !shouldShowLoading && !loadingAnchor.children.isEmpty {
                         loadingAnchor.children.removeAll()
-                    }
-                } else if appModel.selectedModel == .alexnet && 
-                         appModel.selectedInputImageName != nil && 
-                         appModel.isAlexNetGalleryLoading(i) {
-                    // Loading anchor yoksa oluştur
-                    let loadingAnchor = Entity()
-                    loadingAnchor.name = "AlexNetGalleryLoadingAnchor_\(i)"
-                    
-                    // Gallery anchoru bul ve aynı pozisyonda loading anchoru yerleştir
-                    if let galleryAnchor = content.entities.first(where: { $0.name == "AlexNetFeatureGalleryAnchor_\(i)" }) {
-                        loadingAnchor.transform = galleryAnchor.transform
-                        content.add(loadingAnchor)
                     }
                 }
             }
@@ -345,7 +353,7 @@ struct ImmersiveView: View {
                     }
                 }
             }
-            
+                        
             // Küp scalelerini AppModel stateine göre sync et
             updateCubeScales(content)
         } attachments: {
@@ -1099,9 +1107,28 @@ struct ImmersiveView: View {
         let connectionLinesAnchor = Entity()
         connectionLinesAnchor.name = "ConnectionLinesAnchor"
         var connectionT = Transform()
-        connectionT.translation = SIMD3<Float>(x: 0, y: 0, z: 0) // Originde absolute koordinatları
+        connectionT.translation = SIMD3<Float>(x: 0, y: 0, z: 0) // LeNet cube'larıyla aynı pozisyon
         connectionLinesAnchor.transform = connectionT
         content.add(connectionLinesAnchor)
+    }
+    
+    private func makeAlexNetConnectionLinesEntity() -> Entity {
+        let connectionLinesEntity = Entity()
+        connectionLinesEntity.name = "AlexNetConnectionLinesEntity"
+        
+        // makeAlexNetConnectionLines fonksiyonunu doğrudan çağır
+        let connectionLinesAnchor = makeAlexNetConnectionLines()
+        
+        // Childrenı önce arraye kopyala 
+        let childrenArray = Array(connectionLinesAnchor.children)
+        
+        // Connection lines anchorının tüm childrenını entityye ekle
+        for child in childrenArray {
+            connectionLinesEntity.addChild(child)
+        }
+        
+        print("Connection lines entity created with \(childrenArray.count) lines")
+        return connectionLinesEntity
     }
     
     private func setupAlexNetEntities(_ content: RealityViewContent, _ attachments: RealityViewAttachments) {
@@ -1121,14 +1148,23 @@ struct ImmersiveView: View {
         alexnetNetworkAnchor.isEnabled = false
         content.add(alexnetNetworkAnchor)
         
-        // 4.7) AlexNet Neural Network Connection Lines
-        let alexnetConnectionsAnchor = makeAlexNetConnectionLines()
-        var alexnetConnectionsT = Transform()
-        // Nöronlarla aynı pozisyonda
-        alexnetConnectionsT.translation = SIMD3<Float>(x: -2.5, y: 1.2, z: 2.1)
-        alexnetConnectionsAnchor.transform = alexnetConnectionsT
-        alexnetConnectionsAnchor.isEnabled = false
-        content.add(alexnetConnectionsAnchor)
+        // 4.7) AlexNet Neural Network Connection Lines - CHILD APPROACH
+        print("🔗 Creating AlexNet connection lines as child")
+        
+        // Connection lines'ları neural network anchor'ının child'ı olarak ekle
+        let connectionLinesEntity = makeAlexNetConnectionLinesEntity()
+        connectionLinesEntity.name = "AlexNetConnectionLinesEntity"
+        connectionLinesEntity.transform = Transform() // Relative transform
+        alexnetNetworkAnchor.addChild(connectionLinesEntity)
+        print("🔗 Connection lines added as child to neural network anchor")
+        
+        // VERIFY ADD WORKED
+        if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }),
+           networkAnchor.children.contains(where: { $0.name == "AlexNetConnectionLinesEntity" }) {
+            print("CONNECTION LINES SUCCESSFULLY ADDED!")
+        } else {
+            print("CONNECTION LINES FAILED TO ADD!")
+        }
         
         // 4.8) AlexNet Neural Network Layer Labelları
         let alexnetLabelsAnchor = makeAlexNetLayerLabels()
@@ -1154,11 +1190,15 @@ struct ImmersiveView: View {
         alexnetPredictionAnchor.isEnabled = false
         content.add(alexnetPredictionAnchor)
         
-        // 5.5) AlexNet Feature Map Gallery Anchor'ları
+        // 5.5) AlexNet Feature Map Gallery Anchor'ları + Loading Anchor'ları
         // Sadece anchorları oluştur attachmentları input seçilince ekle
         for i in 0..<8 {
             let alexnetGalleryAnchor = Entity()
             alexnetGalleryAnchor.name = "AlexNetFeatureGalleryAnchor_\(i)"
+            
+            // Loading anchor'ını da aynı anda oluştur 
+            let loadingAnchor = Entity()
+            loadingAnchor.name = "AlexNetGalleryLoadingAnchor_\(i)"
                         
             var alexnetGalleryT = Transform()
             // AlexNet küplerinin tam üstünde konumlandır
@@ -1202,6 +1242,11 @@ struct ImmersiveView: View {
             alexnetGalleryAnchor.transform = alexnetGalleryT
             alexnetGalleryAnchor.isEnabled = false
             content.add(alexnetGalleryAnchor)
+            
+            // Loading anchor'ını da aynı pozisyonda oluştur ve ekle
+            loadingAnchor.transform = alexnetGalleryT // Aynı transform
+            loadingAnchor.isEnabled = false
+            content.add(loadingAnchor)
         }
     }
     
@@ -1224,11 +1269,11 @@ struct ImmersiveView: View {
     
     private func clearLenetEntities(_ content: RealityViewContent) {
         let lenetEntities = content.entities.filter { entity in
-            entity.name.contains("Lenet") || 
-            entity.name.contains("Flatten") || 
-            entity.name.contains("Dense") ||
-            entity.name.contains("OutputVisualization") ||
-            entity.name.contains("ConnectionLines")
+            entity.name == "LenetCubesAnchor" ||
+            entity.name == "FlattenVisualizationAnchor" || 
+            entity.name == "DenseVisualizationAnchor" ||
+            entity.name == "OutputVisualizationAnchor" ||  
+            entity.name == "ConnectionLinesAnchor"  
         }
         for entity in lenetEntities {
             content.remove(entity)
@@ -1236,10 +1281,11 @@ struct ImmersiveView: View {
     }
     
     private func clearAlexNetEntities(_ content: RealityViewContent) {
-        let alexnetEntities = content.entities.filter { entity in
-            entity.name.contains("AlexNet")
+        // Sadece AlexNet cube'larını sil, connection lines'ları koruma
+        let alexnetCubeEntities = content.entities.filter { entity in
+            entity.name == "AlexNetCubesAnchor"
         }
-        for entity in alexnetEntities {
+        for entity in alexnetCubeEntities {
             content.remove(entity)
         }
     }

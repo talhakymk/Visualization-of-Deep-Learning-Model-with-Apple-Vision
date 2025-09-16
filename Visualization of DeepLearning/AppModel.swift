@@ -132,8 +132,8 @@ class AppModel {
             // Küp kapalıysa aç ve loading başlat
             loadingAlexNetGalleries.insert(cubeIndex)
             
-            // Gallery yükleme simülasyonu için bilerek gecikme
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Gallery yükleme simülasyonu için gerçekçi gecikme
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // 0.1 saniye loading göster
                 self.openAlexNetCubeIndices.insert(cubeIndex)
                 // Loading bitince loading stateini kaldır
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // 1 saniye gallery load time
