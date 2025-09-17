@@ -9,7 +9,7 @@ import Foundation
 import RealityKit
 import UIKit
 
-func makeLenetCubesAnchor(labels: [String] = ["CONVOLUTION 1\n(27x27x6)", "MAXPOOLING 1\n13x13x6", "CONVOLUTION 2\n9x9x16", "MAXPOOLING 2\n4x4x16"]) -> Entity {
+func makeLenetCubesAnchor(labels: [String] = ["CONVOLUTION 1\n(27x27x6)", "MAXPOOLING 1\n13x13x16", "CONVOLUTION 2\n9x9x6", "MAXPOOLING 2\n4x4x16"]) -> Entity {
     let anchor = Entity()
     anchor.name = "LenetCubesAnchor"
     

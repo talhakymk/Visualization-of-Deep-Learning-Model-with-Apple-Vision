@@ -50,24 +50,26 @@ struct ImmersiveView: View {
                 // AlexNet entityleri yoksa oluştur 
                 let hasAlexNetCubes = content.entities.contains(where: { $0.name == "AlexNetCubesAnchor" })
                 let hasAlexNetNetwork = content.entities.contains(where: { $0.name == "AlexNetNeuralNetworkAnchor" })
+                let hasAlexNetPrediction = content.entities.contains(where: { $0.name == "AlexNetPredictionPanelAnchor" })
                 
                 var hasAlexNetConnections = false
                 if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }) {
                     hasAlexNetConnections = networkAnchor.children.contains(where: { $0.name == "AlexNetConnectionLinesEntity" })
                 }
                 
-                if !hasAlexNetCubes || !hasAlexNetNetwork || !hasAlexNetConnections {
-                    print("🔄 Setting up AlexNet entities - cubes: \(hasAlexNetCubes), network: \(hasAlexNetNetwork), connections: \(hasAlexNetConnections)")
+                if !hasAlexNetCubes || !hasAlexNetNetwork || !hasAlexNetConnections || !hasAlexNetPrediction {
+                    print("Setting up AlexNet entities - cubes: \(hasAlexNetCubes), network: \(hasAlexNetNetwork), connections: \(hasAlexNetConnections), prediction: \(hasAlexNetPrediction)")
                     setupAlexNetEntities(content, attachments)
                     
                     // Setup sonrası kontrol
                     let hasAlexNetCubesAfter = content.entities.contains(where: { $0.name == "AlexNetCubesAnchor" })
                     let hasAlexNetNetworkAfter = content.entities.contains(where: { $0.name == "AlexNetNeuralNetworkAnchor" })
+                    let hasAlexNetPredictionAfter = content.entities.contains(where: { $0.name == "AlexNetPredictionPanelAnchor" })
                     var hasAlexNetConnectionsAfter = false
                     if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }) {
                         hasAlexNetConnectionsAfter = networkAnchor.children.contains(where: { $0.name == "AlexNetConnectionLinesEntity" })
                     }
-                    print("🔄 After setup - cubes: \(hasAlexNetCubesAfter), network: \(hasAlexNetNetworkAfter), connections: \(hasAlexNetConnectionsAfter)")
+                    print("After setup - cubes: \(hasAlexNetCubesAfter), network: \(hasAlexNetNetworkAfter), connections: \(hasAlexNetConnectionsAfter), prediction: \(hasAlexNetPredictionAfter)")
                 }
                 // LeNet entityleri varsa kaldır
                 clearLenetEntities(content)
@@ -127,6 +129,9 @@ struct ImmersiveView: View {
             if let alexnetPrediction = content.entities.first(where: { $0.name == "AlexNetPredictionPanelAnchor" }) {
                 let shouldShowAlexNetPrediction = (appModel.selectedModel == .alexnet && appModel.selectedInputImageName != nil)
                 alexnetPrediction.isEnabled = shouldShowAlexNetPrediction
+                
+            } else {
+                print("AlexNet Prediction Panel anchor not found in content!")
             }
             
             // Her küp için ayrı galeri kontrolü (LeNet)
@@ -1149,14 +1154,14 @@ struct ImmersiveView: View {
         content.add(alexnetNetworkAnchor)
         
         // 4.7) AlexNet Neural Network Connection Lines - CHILD APPROACH
-        print("🔗 Creating AlexNet connection lines as child")
+        print("Creating AlexNet connection lines as child")
         
         // Connection lines'ları neural network anchor'ının child'ı olarak ekle
         let connectionLinesEntity = makeAlexNetConnectionLinesEntity()
         connectionLinesEntity.name = "AlexNetConnectionLinesEntity"
         connectionLinesEntity.transform = Transform() // Relative transform
         alexnetNetworkAnchor.addChild(connectionLinesEntity)
-        print("🔗 Connection lines added as child to neural network anchor")
+        print("Connection lines added as child to neural network anchor")
         
         // VERIFY ADD WORKED
         if let networkAnchor = content.entities.first(where: { $0.name == "AlexNetNeuralNetworkAnchor" }),
@@ -1179,8 +1184,11 @@ struct ImmersiveView: View {
         let alexnetPredictionAnchor = Entity()
         alexnetPredictionAnchor.name = "AlexNetPredictionPanelAnchor"
         if let predictionEntity = attachments.entity(for: "alexnetPredictionPanel") {
+            print("AlexNet prediction panel attachment found")
             predictionEntity.name = "AlexNetPredictionPanelEntity"
             alexnetPredictionAnchor.addChild(predictionEntity)
+        } else {
+            print("AlexNet prediction panel attachment NOT found")
         }
         var alexnetPredictionT = Transform()
         // Kullanıcının solunda konumlandır ve kullanıcıya dönük yap
@@ -1189,6 +1197,14 @@ struct ImmersiveView: View {
         alexnetPredictionAnchor.transform = alexnetPredictionT
         alexnetPredictionAnchor.isEnabled = false
         content.add(alexnetPredictionAnchor)
+        print("AlexNet prediction panel anchor added to content!")
+        
+        // Immediate verification
+        if content.entities.contains(where: { $0.name == "AlexNetPredictionPanelAnchor" }) {
+            print("AlexNet prediction panel anchor VERIFIED in content!")
+        } else {
+            print("AlexNet prediction panel anchor NOT FOUND after adding!")
+        }
         
         // 5.5) AlexNet Feature Map Gallery Anchor'ları + Loading Anchor'ları
         // Sadece anchorları oluştur attachmentları input seçilince ekle
@@ -1281,11 +1297,11 @@ struct ImmersiveView: View {
     }
     
     private func clearAlexNetEntities(_ content: RealityViewContent) {
-        // Sadece AlexNet cube'larını sil, connection lines'ları koruma
-        let alexnetCubeEntities = content.entities.filter { entity in
-            entity.name == "AlexNetCubesAnchor"
+        // Tüm AlexNet entity'lerini temizle - prediction panel dahil
+        let alexnetEntities = content.entities.filter { entity in
+            entity.name.hasPrefix("AlexNet")
         }
-        for entity in alexnetCubeEntities {
+        for entity in alexnetEntities {
             content.remove(entity)
         }
     }
